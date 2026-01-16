@@ -27,41 +27,41 @@ const _nav = [
       text: 'NEW',
     },
   },
-  {
-    component: CNavTitle,
-    name: 'Theme',
-  },
-  {
-    component: CNavItem,
-    name: 'Colors',
-    to: '/theme/colors',
-    icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Typography',
-    to: '/theme/typography',
-    icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavTitle,
+  //   name: 'Theme',
+  // },
+  // {
+  //   component: CNavItem,
+  //   name: 'Colors',
+  //   to: '/theme/colors',
+  //   icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
+  // },
+  // {
+  //   component: CNavItem,
+  //   name: 'Typography',
+  //   to: '/theme/typography',
+  //   icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
+  // },
   {
     component: CNavTitle,
     name: 'Components',
   },
   {
     component: CNavGroup,
-    name: 'Base',
+    name: 'User Management',
     to: '/base',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
-        name: 'Accordion',
-        to: '/base/accordion',
+        name: 'Users List',
+        to: '/users/list',
       },
       {
         component: CNavItem,
-        name: 'Breadcrumb',
-        to: '/base/breadcrumbs',
+        name: 'User Roles',
+        to: '/user/roles',
       },
       {
         component: CNavItem,
@@ -183,24 +183,24 @@ const _nav = [
   },
   {
     component: CNavGroup,
-    name: 'Buttons',
-    to: '/buttons',
+    name: 'Project Management',
+    to: '/projects',
     icon: <CIcon icon={cilCursor} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
-        name: 'Buttons',
-        to: '/buttons/buttons',
+        name: 'Projects List',
+        to: '/project/lists',
       },
       {
         component: CNavItem,
-        name: 'Buttons groups',
-        to: '/buttons/button-groups',
+        name: 'Project Tasks',
+        to: '/project/tasks',
       },
       {
         component: CNavItem,
-        name: 'Dropdowns',
-        to: '/buttons/dropdowns',
+        name: 'Project Reports',
+        to: '/project/reports',
       },
       {
         component: CNavItem,
@@ -220,7 +220,7 @@ const _nav = [
   },
   {
     component: CNavGroup,
-    name: 'Forms',
+    name: 'Project Management ',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
     items: [
       {
@@ -242,29 +242,29 @@ const _nav = [
         name: 'Checks & Radios',
         to: '/forms/checks-radios',
       },
-      {
-        component: CNavItem,
-        name: (
-          <React.Fragment>
-            {'Date Picker'}
-            <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
-          </React.Fragment>
-        ),
-        href: 'https://coreui.io/react/docs/forms/date-picker/',
-        badge: {
-          color: 'danger',
-          text: 'PRO',
-        },
-      },
-      {
-        component: CNavItem,
-        name: 'Date Range Picker',
-        href: 'https://coreui.io/react/docs/forms/date-range-picker/',
-        badge: {
-          color: 'danger',
-          text: 'PRO',
-        },
-      },
+      // {
+      //   component: CNavItem,
+      //   name: (
+      //     <React.Fragment>
+      //       {'Date Picker'}
+      //       <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
+      //     </React.Fragment>
+      //   ),
+      //   href: 'https://coreui.io/react/docs/forms/date-picker/',
+      //   badge: {
+      //     color: 'danger',
+      //     text: 'PRO',
+      //   },
+      // },
+      // {
+      //   component: CNavItem,
+      //   name: 'Date Range Picker',
+      //   href: 'https://coreui.io/react/docs/forms/date-range-picker/',
+      //   badge: {
+      //     color: 'danger',
+      //     text: 'PRO',
+      //   },
+      // },
       {
         component: CNavItem,
         name: 'Floating Labels',
@@ -402,7 +402,7 @@ const _nav = [
   },
   {
     component: CNavItem,
-    name: 'Charts',
+    name: 'Analytics ',
     to: '/charts',
     icon: <CIcon icon={cilChartPie} customClassName="nav-icon" />,
   },
