@@ -1,18 +1,33 @@
-const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const Role = require("../models/Role");
 
 module.exports = async () => {
-  const exists = await User.findOne({ role: "SUPER_ADMIN" });
-  if (!exists) {
-    await User.create({
-      firstName: "System",
-      lastName: "Owner",
-      username: "superadmin",
-      email: "kithekasolomon20@gmail.com",
-      password: await bcrypt.hash("SuperAdmin123", 10),
-      role: "SUPER_ADMIN",
-      isActive: true,
+  // 1️⃣ Ensure SUPER_ADMIN role exists
+  let superAdminRole = await Role.findOne({ name: "SUPER_ADMIN" });
+
+  if (!superAdminRole) {
+    superAdminRole = await Role.create({
+      name: "SUPER_ADMIN",
+      permissions: ["*"], // wildcard (all permissions)
     });
-    console.log("Super Admin seeded");
   }
+
+  // 2️⃣ Ensure Super Admin user exists
+  const existingUser = await User.findOne({ username: "superadmin" });
+  if (existingUser) return;
+
+  const hashed = await bcrypt.hash("admin123", 10);
+
+  await User.create({
+    firstName: "Super",
+    lastName: "Admin",
+    username: "superadmin",
+    email: process.env.EMAIL_USER,
+    password: hashed,
+    role: superAdminRole._id, // ✅ OBJECT ID
+    isActive: true,
+  });
+
+  console.log("✅ Super Admin seeded");
 };
