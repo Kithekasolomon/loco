@@ -11,6 +11,7 @@ const {
   requestDeactivateUser,
   requestRestoreUser,
 } = require("../controllers/userController");
+const User = require("../models/User");
 
 router.post("/create", auth, role(["SUPER_ADMIN", "ADMIN"]), createUser);
 router.get("/activate/:id", activateUser);
@@ -35,5 +36,22 @@ router.put(
   audit("RESTORE_USER_REQUEST"),
   requestRestoreUser
 );
+router.get("/", auth, role(["ADMIN", "SUPER_ADMIN"]), async (req, res) => {
+  try {
+    const users = await User.find()
+      .populate("role", "name") 
+      .lean(); 
+
+    const cleaned = users.map((user) => ({
+      ...user,
+      role: user.role || { name: "No role" }, 
+    }));
+
+    res.json(cleaned);
+  } catch (err) {
+    console.error("[GET /api/users] Error:", err.stack);
+    res.status(500).json({ message: "Server error while fetching users" });
+  }
+});
 
 module.exports = router;

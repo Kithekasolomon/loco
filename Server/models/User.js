@@ -8,11 +8,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, unique: true },
     phone: String,
     password: String,
-    // role: {
-    //   type: String,
-    //   enum: ["SUPER_ADMIN", "ADMIN", "USER"],
-    //   default: "USER",
-    // },
+    
     role: {
   type: mongoose.Schema.Types.ObjectId,
   ref: "Role",

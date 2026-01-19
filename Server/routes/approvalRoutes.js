@@ -14,6 +14,10 @@ router.post(
   role(["ADMIN"]),
   requestApproval, 
 );
+router.get("/", auth, role(["SUPER_ADMIN"]), async (req, res) => {
+  const approvals = await Approval.find().populate("requestedBy");
+  res.json(approvals);
+});
 
 router.get("/my", auth, getMyApprovals);
 
