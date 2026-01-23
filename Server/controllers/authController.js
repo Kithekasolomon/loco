@@ -37,8 +37,21 @@ exports.verifyOtp = async (req, res) => {
 
   await Otp.deleteMany({ userId });
 
-  const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: "1d",
-  });
+  // IMPORTANT: Fetch the full user with populated role
+  const user = await User.findById(userId).populate("role");
+
+  if (!user) {
+    return res.status(404).json({ msg: "User not found" });
+  }
+
+  const token = jwt.sign(
+    {
+      id: user._id,
+      role: user.role, 
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" },
+  );
+
   res.json({ token });
 };

@@ -4,6 +4,10 @@ import ProjectList from './views/pages/projectManagement/ProjectList/ProjectList
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
+const BoqView = React.lazy(() => import('./views/pages/projectManagement/BoqView/BoqView'))
+const EditProject = React.lazy(
+  () => import('./views/pages/projectManagement/EditProject/EditProject'),
+)
 
 // Base
 const UserList = React.lazy(() => import('./views/pages/userManagement/UserList/UserList'))
@@ -24,6 +28,12 @@ const Tooltips = React.lazy(() => import('./views/base/tooltips/Tooltips'))
 
 // Buttons
 const Buttons = React.lazy(() => import('./views/pages/projectManagement/ProjectList/ProjectList'))
+
+const BoqItemDetails = React.lazy(
+  () => import('./views/pages/projectManagement/BoqItemDetails/BoqItemDetails'),
+)
+
+
 const ButtonGroups = React.lazy(() => import('./views/buttons/button-groups/ButtonGroups'))
 const Dropdowns = React.lazy(() => import('./views/buttons/dropdowns/Dropdowns'))
 
@@ -77,8 +87,11 @@ const routes = [
   { path: '/base/tables', name: 'Tables', element: Tables },
   { path: '/base/tooltips', name: 'Tooltips', element: Tooltips },
   { path: '/projects', name: 'Project Management', element: Buttons, exact: true },
+
   { path: '/project/tasks', name: 'Project Tasks', element: Buttons },
   { path: '/project/reports', name: 'Project Reports', element: Dropdowns },
+  { path: '/projects/view/:id', name: 'View Project BOQ', element: BoqView },
+  { path: '/projects/edit/:id', name: 'Edit Project', element: EditProject },
   { path: '/project/lists', name: 'Project Lists', element: ProjectList },
   { path: '/charts', name: 'Charts', element: Charts },
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
@@ -98,6 +111,22 @@ const routes = [
   { path: '/notifications/list', name: 'Notification List', element: NotificationList },
   { path: '/notifications/badges', name: 'Badges', element: Badges },
   { path: '/notifications/modals', name: 'Modals', element: Modals },
+  {
+    path: '/projects/view/:id/boq',
+    name: 'View Project BOQ',
+    element: BoqView,
+  },
+  {
+    path: '/projects/view/:id/boq/:boqItemId/details',
+    name: 'BOQ Item Details',
+    element: BoqItemDetails,
+  },
+  {
+    path: '/projects/edit/:id',
+    name: 'Edit Project',
+    element: EditProject,
+  },
+
   { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
 ]

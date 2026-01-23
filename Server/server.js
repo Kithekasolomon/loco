@@ -29,6 +29,11 @@ app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/roles", require("./routes/roleRoutes"));
 app.use("/api/approvals", require("./routes/approvalRoutes"));
 app.use("/api/permissions", require("./routes/permissionRoutes"));
+app.use("/api/audit", require("./routes/auditRoutes"));
+app.use("/api/projects", require("./routes/projectRoutes"));
+app.use("/api/boq", require("./routes/boqRoutes"));
+app.use("/api/boq-categories", require("./routes/boqCategoryRoutes"));
+app.use("/api/boq-breakdown", require("./routes/boqBreakdownRoutes"));
 
 // Create HTTP server
 const server = http.createServer(app);

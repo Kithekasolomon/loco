@@ -7,37 +7,64 @@ module.exports.initSocket = (server) => {
   io = require("socket.io")(server, {
     cors: {
       origin: "http://localhost:3000",
+      methods: ["GET", "POST"],
       credentials: true,
     },
+    // Optional: reduce polling fallback issues
+    transports: ["websocket", "polling"],
   });
 
+  // Authentication middleware
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token;
-      if (!token) return next(new Error("No token"));
+      if (!token) {
+        return next(new Error("Authentication error: No token provided"));
+      }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.userId = decoded.id;
 
       const user = await User.findById(decoded.id).populate("role");
-      socket.role = user.role.name;
+      if (!user || !user.role) {
+        return next(new Error("User or role not found"));
+      }
+
+      socket.user = {
+        id: user._id.toString(),
+        username: user.username,
+        role: user.role.name,
+      };
 
       next();
     } catch (err) {
+      console.error("Socket auth error:", err.message);
       next(new Error("Authentication error"));
     }
   });
 
   io.on("connection", (socket) => {
-    console.log(`🔌 User connected: ${socket.userId}`);
+    console.log(
+      `🔌 User connected: ${socket.user.username || socket.userId} (${socket.user.role})`,
+    );
 
-    socket.join(socket.role); 
-    socket.join(socket.userId); 
+    // Join rooms
+    socket.join(socket.user.role); // e.g. "SUPER_ADMIN", "ADMIN"
+    socket.join(socket.user.id); // personal room by userId string
+
+    // Optional: client can request to join other rooms if needed
+    socket.on("join", (data) => {
+      if (data.room && socket.user.role === "SUPER_ADMIN") {
+        socket.join(data.room);
+      }
+    });
 
     socket.on("disconnect", () => {
-      console.log(`❌ Disconnected: ${socket.userId}`);
+      console.log(`❌ Disconnected: ${socket.user.username || socket.userId}`);
     });
   });
+
+  return io;
 };
 
 module.exports.getIO = () => {

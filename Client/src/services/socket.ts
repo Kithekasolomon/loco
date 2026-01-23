@@ -1,32 +1,41 @@
 // src/services/socket.js
-import { io } from 'socket.io-client';
+import { io } from 'socket.io-client'
 
-let socket = null;
+let socket = null
 
 export const initSocket = () => {
-  if (socket) return socket;
+  if (socket) return socket
 
-  const token = localStorage.getItem('token');
-  if (!token) return null;
-
+  // Connect to your backend (change port/host if different)
   socket = io('http://localhost:5000', {
-    auth: { token },
-  });
+    auth: {
+      token: localStorage.getItem('token') || '', // send JWT so backend can authenticate
+    },
+    withCredentials: true,
+    autoConnect: true,
+  })
 
   socket.on('connect', () => {
-    console.log('Socket connected for notifications');
-  });
+    console.log('Socket connected:', socket.id)
+  })
 
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected');
-  });
+  socket.on('connect_error', (err) => {
+    console.error('Socket connection error:', err.message)
+  })
 
-  return socket;
-};
+  return socket
+}
 
-export const getSocket = () => socket;
+export const getSocket = () => {
+  if (!socket) {
+    console.warn('Socket not initialized yet. Call initSocket first.')
+  }
+  return socket
+}
 
 export const disconnectSocket = () => {
-  if (socket) socket.disconnect();
-  socket = null;
-};
+  if (socket) {
+    socket.disconnect()
+    socket = null
+  }
+}
