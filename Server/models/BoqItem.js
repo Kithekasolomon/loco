@@ -12,7 +12,11 @@ const boqItemSchema = new mongoose.Schema(
       required: true,
       default: "General",
     },
-    itemNumber: { type: String, required: true },
+    itemNumber: { 
+      type: String, 
+      required: true,
+      trim: true 
+    },
     description: { type: String, required: true },
     unit: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0 },
@@ -29,13 +33,13 @@ const boqItemSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-boqItemSchema.pre("save", async function () {
+boqItemSchema.pre("save", function (next) {
   this.total = (this.quantity || 0) * (this.rate || 0);
   this.valuedAmount = this.total * ((this.progressPercentage || 0) / 100);
+  next();
 });
 
-// Optional: Also update on findOneAndUpdate (for edits)
-boqItemSchema.pre("findOneAndUpdate", async function () {
+boqItemSchema.pre("findOneAndUpdate", async function (next) {
   const update = this.getUpdate();
   if (update.quantity || update.rate || update.progressPercentage) {
     const doc = await this.model.findOne(this.getQuery());
@@ -43,12 +47,13 @@ boqItemSchema.pre("findOneAndUpdate", async function () {
       const quantity = update.quantity ?? doc.quantity;
       const rate = update.rate ?? doc.rate;
       const progress = update.progressPercentage ?? doc.progressPercentage;
-
       update.total = quantity * rate;
       update.valuedAmount = update.total * (progress / 100);
-      this.set(update);
     }
   }
+  next();
 });
+
+boqItemSchema.index({ project: 1, itemNumber: 1 }, { unique: true });
 
 module.exports = mongoose.model("BoqItem", boqItemSchema);

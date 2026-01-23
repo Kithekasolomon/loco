@@ -6,7 +6,6 @@ import {
   CCardHeader,
   CCol,
   CRow,
-  
   CTable,
   CTableHead,
   CTableRow,
@@ -14,7 +13,6 @@ import {
   CTableBody,
   CTableDataCell,
   CButton,
-  
   CButtonGroup,
   CBadge,
   CSpinner,
@@ -45,11 +43,14 @@ import {
   cilCalculator,
   cilChartPie,
   cilCheckCircle,
+  cilFile,
   cilClock,
   cilWarning,
 } from '@coreui/icons'
 import api from '../../../../api/axios'
 import { useAuth } from '../../../../context/AuthContext'
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 
 const BoqView = () => {
   const { id } = useParams()
@@ -91,7 +92,6 @@ const BoqView = () => {
 
       setProject(data.project || null)
 
-      // === FIX: Extract and flatten items from all categories ===
       const allItems = []
       if (data.boq?.categories && Array.isArray(data.boq.categories)) {
         data.boq.categories.forEach((category) => {
@@ -100,9 +100,7 @@ const BoqView = () => {
           }
         })
       }
-      setBoqItems(allItems) // ← Now this is always a proper array
-
-      // === FIX: Use the top-level summary safely ===
+      setBoqItems(allItems)
       const boqSummary = data.boq?.summary || {}
       setSummary({
         totalContractSum: boqSummary.totalContractSum || 0,
@@ -123,6 +121,17 @@ const BoqView = () => {
 
   const handleAdd = async (e) => {
     e.preventDefault()
+
+    const duplicate = boqItems.find(
+      (item) =>
+        item.itemNumber.trim().toLowerCase() === formData.itemNumber.trim().toLowerCase() &&
+        (!selectedItem || item._id !== selectedItem._id),
+    )
+
+    if (duplicate) {
+      setError(`Item Number "${formData.itemNumber}" already exists. Please use a unique number.`)
+      return
+    }
     try {
       setError(null)
       await api.post(`/api/boq/${id}`, formData)
@@ -137,6 +146,16 @@ const BoqView = () => {
 
   const handleEdit = async (e) => {
     e.preventDefault()
+    const duplicate = boqItems.find(
+      (item) =>
+        item.itemNumber.trim().toLowerCase() === formData.itemNumber.trim().toLowerCase() &&
+        (!selectedItem || item._id !== selectedItem._id),
+    )
+
+    if (duplicate) {
+      setError(`Item Number "${formData.itemNumber}" already exists. Please use a unique number.`)
+      return
+    }
     try {
       setError(null)
       await api.put(`/api/boq/${selectedItem._id}`, formData)
@@ -215,6 +234,78 @@ const BoqView = () => {
     if (percentage >= 100) return cilCheckCircle
     if (percentage >= 50) return cilClock
     return cilWarning
+  }
+
+  const exportBreakdownReport = async (boqItem) => {
+    try {
+      setError(null)
+
+      // Fetch breakdown data
+      const { data: breakdown } = await api.get(`/api/boq-breakdown/${boqItem._id}`)
+
+      const workbook = new ExcelJS.Workbook()
+      workbook.creator = 'BOQ System'
+      workbook.created = new Date()
+
+      // Summary Sheet
+      const summarySheet = workbook.addWorksheet('Summary')
+      summarySheet.mergeCells('A1:G1')
+      summarySheet.getCell('A1').value = `${boqItem.itemNumber} - ${boqItem.description}`
+      summarySheet.getCell('A1').font = { size: 16, bold: true }
+      summarySheet.getCell('A1').alignment = { horizontal: 'center' }
+
+      summarySheet.addRow([])
+      summarySheet.addRow(['Quantity', boqItem.quantity])
+      summarySheet.addRow(['Unit', boqItem.unit])
+      summarySheet.addRow(['Rate (KES)', formatCurrency(boqItem.rate)])
+      summarySheet.addRow(['BOQ Total', formatCurrency(boqItem.total)])
+      summarySheet.addRow([])
+
+      const grandTotal = breakdown.reduce((sum, sys) => {
+        return sum + sys.items.reduce((s, i) => s + (i.total || 0), 0)
+      }, 0)
+
+      summarySheet.addRow(['Build-Up Grand Total', formatCurrency(grandTotal)])
+      summarySheet.addRow(['Variance', formatCurrency(grandTotal - boqItem.total)])
+
+      // One sheet per system
+      breakdown.forEach((system) => {
+        const safeName = system.name.substring(0, 31)
+        const sheet = workbook.addWorksheet(safeName)
+
+        sheet.addRow([`System: ${system.name}`]).font = { bold: true, size: 14 }
+        sheet.addRow([])
+
+        sheet.addRow(['Item No.', 'Description', 'Unit', 'Qty', 'Rate (KES)', 'Total (KES)'])
+        sheet.getRow(sheet.rowCount).font = { bold: true }
+
+        system.items.forEach((item) => {
+          sheet.addRow([
+            item.itemNumber || '',
+            item.description,
+            item.unit,
+            item.quantity,
+            item.rate,
+            item.total || 0,
+          ])
+        })
+
+        const sysTotal = system.items.reduce((s, i) => s + (i.total || 0), 0)
+        sheet.addRow([])
+        sheet.addRow(['', '', '', '', 'System Total', sysTotal])
+        sheet.getRow(sheet.rowCount).font = { bold: true }
+      })
+
+      // Download
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      saveAs(blob, `BOQ_${boqItem.itemNumber}_Rate_Build_Up.xlsx`)
+    } catch (err) {
+      console.error('Export failed:', err)
+      setError('Failed to export rate build-up report')
+    }
   }
 
   if (loading) {
@@ -569,11 +660,7 @@ const BoqView = () => {
                       </CTableDataCell>
                       <CTableDataCell className="py-2">
                         <div className="d-flex align-items-center gap-2">
-                          <CProgress
-                            height={6}
-                            className="flex-grow-1"
-                            style={{ minWidth: '70px' }}
-                          >
+                          <CProgress height={3} className="flex-grow-" style={{ minWidth: '30px' }}>
                             <CProgressBar
                               color={getProgressColor(item.progressPercentage)}
                               value={item.progressPercentage}
@@ -613,6 +700,17 @@ const BoqView = () => {
                                 <CIcon icon={cilZoom} size="sm" />
                               </CButton>
                             </Link>
+                          </CTooltip>
+
+                          <CTooltip content="Export Rate Build-Up to Excel">
+                            <CButton
+                              color="success"
+                              variant="ghost"
+                              className="px-2"
+                              onClick={() => exportBreakdownReport(item)}
+                            >
+                              <CIcon icon={cilFile} size="sm" />
+                            </CButton>
                           </CTooltip>
 
                           <CTooltip content="Delete Item">

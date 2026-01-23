@@ -104,33 +104,46 @@ exports.createBoqItem = async (req, res) => {
       category = "General",
     } = req.body;
 
+    const trimmedItemNumber = itemNumber?.trim();
+    if (!trimmedItemNumber) {
+      return res.status(400).json({ msg: "Item number is required" });
+    }
+
+    const existing = await BoqItem.findOne({
+      project: projectId,
+      itemNumber: trimmedItemNumber,
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        msg: `Item Number "${trimmedItemNumber}" already exists in this project. Please use a unique number.`,
+      });
+    }
+
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ msg: "Project not found" });
 
-   
-    let finalCategoryName = category.trim();
+    let finalCategoryName = category.trim() || "General";
 
-    if (finalCategoryName && finalCategoryName !== "General") {
-      const existing = await BoqCategory.findOne({
+    if (finalCategoryName !== "General") {
+      const catExists = await BoqCategory.findOne({
         project: projectId,
         name: { $regex: new RegExp(`^${finalCategoryName}$`, "i") },
       });
 
-      if (!existing) {
+      if (!catExists) {
         await BoqCategory.create({
           project: projectId,
           name: finalCategoryName,
           createdBy: req.user.id,
         });
-       
       }
     }
-   
 
     const item = await BoqItem.create({
       project: projectId,
       category: finalCategoryName,
-      itemNumber,
+      itemNumber: trimmedItemNumber,
       description,
       unit,
       quantity,
@@ -139,17 +152,14 @@ exports.createBoqItem = async (req, res) => {
       createdBy: req.user.id,
     });
 
-   
-    const freshCategories = await BoqCategory.find({ project: projectId })
-      .sort({ order: 1, name: 1 })
-      .select("name order");
-
-    res.status(201).json({
-      item,
-      categories: freshCategories, 
-    });
+    res.status(201).json(item);
   } catch (err) {
     console.error("createBoqItem error:", err);
+    if (err.code === 11000) {
+      return res.status(400).json({
+        msg: "This item number is already used in the project.",
+      });
+    }
     res.status(500).json({ message: "Failed to create BOQ item" });
   }
 };
