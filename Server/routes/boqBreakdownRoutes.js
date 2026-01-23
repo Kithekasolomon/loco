@@ -6,6 +6,8 @@ const audit = require("../middleware/auditMiddleware");
 const {
   createBreakdownItem,
   getBreakdownByParent,
+  updateBreakdownItem,
+  deleteBreakdownItem,
 } = require("../controllers/boqBreakdownController");
 
 router.post(
@@ -14,6 +16,19 @@ router.post(
   role(["ADMIN", "SUPER_ADMIN"]),
   audit("BOQ_BREAKDOWN_CREATE"),
   createBreakdownItem,
+);
+router.put(
+  "/:boqItemId/items/:itemId",
+  auth,
+  role(["ADMIN", "SUPER_ADMIN"]),
+  updateBreakdownItem,
+);
+
+router.delete(
+  "/:boqItemId/items/:itemId",
+  auth,
+  role(["ADMIN", "SUPER_ADMIN"]),
+  deleteBreakdownItem,
 );
 
 router.get(

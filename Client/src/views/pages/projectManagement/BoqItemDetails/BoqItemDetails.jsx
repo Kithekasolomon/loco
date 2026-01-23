@@ -43,26 +43,31 @@ import {
   cilCalculator,
   cilWarning,
   cilMoney,
+  cilPencil,
+  cilTrash,
 } from '@coreui/icons'
 
-import api from '../../../../api/axios' // your axios instance
+import api from '../../../../api/axios'
 
 const BoqItemDetails = () => {
   const { id: projectId, boqItemId } = useParams()
 
   const [boqItem, setBoqItem] = useState(null)
-  const [categories, setCategories] = useState([]) // from BoqCategory
+  const [categories, setCategories] = useState([])
   const [itemsByCategory, setItemsByCategory] = useState({})
   const [activeTab, setActiveTab] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // Modals
+  // Modals & Editing
   const [addEntryModal, setAddEntryModal] = useState(false)
   const [addTabModal, setAddTabModal] = useState(false)
+  const [deleteModal, setDeleteModal] = useState(false)
   const [newTabName, setNewTabName] = useState('')
+  const [editingItem, setEditingItem] = useState(null)
+  const [itemToDelete, setItemToDelete] = useState(null)
 
-  // Form
+  // Form data
   const [formData, setFormData] = useState({
     itemNumber: '',
     description: '',
@@ -71,31 +76,30 @@ const BoqItemDetails = () => {
     rate: '',
   })
 
-  // Fetch everything on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
 
-        const { data: itemRes } = await api.get(`/api/boq/${boqItemId}`)
-        setBoqItem(itemRes) 
+        const { data: parent } = await api.get(`/api/boq/${boqItemId}`)
+        setBoqItem(parent)
 
-        const { data: cats } = await api.get(`/api/boq-categories/project/${projectId}/categories`)
-        setCategories(cats)
+        const { data: breakdown } = await api.get(`/api/boq-breakdown/${boqItemId}`)
 
-        
-        const { data: projectRes } = await api.get(`/api/projects/${projectId}`)
-        const allItems = projectRes.boq.categories.reduce((acc, cat) => {
-          return { ...acc, [cat.name]: cat.items }
+        setCategories(breakdown.map((s) => ({ name: s.name })))
+
+        const grouped = breakdown.reduce((acc, sys) => {
+          acc[sys.name] = sys.items
+          return acc
         }, {})
 
-        setItemsByCategory(allItems)
+        setItemsByCategory(grouped)
 
-        if (cats.length > 0) {
-          setActiveTab(cats[0].name)
+        if (breakdown.length > 0) {
+          setActiveTab(breakdown[0].name)
         }
       } catch (err) {
-        setError('Failed to load BOQ details')
+        setError('Failed to load BOQ breakdown')
         console.error(err)
       } finally {
         setLoading(false)
@@ -103,53 +107,92 @@ const BoqItemDetails = () => {
     }
 
     fetchData()
-  }, [projectId, boqItemId])
+  }, [boqItemId])
 
-  const handleAddTab = async () => {
-    if (!newTabName.trim()) return
-
+  const refreshBreakdown = async () => {
     try {
-      await api.post(`/api/boq-categories/project/${projectId}/categories`, {
-        name: newTabName.trim(),
-      })
-
-      // Refresh categories
-      const { data } = await api.get(`/api/boq-categories/project/${projectId}/categories`)
-      setCategories(data)
-      setActiveTab(newTabName.trim())
-      setAddTabModal(false)
-      setNewTabName('')
+      const { data: breakdown } = await api.get(`/api/boq-breakdown/${boqItemId}`)
+      setCategories(breakdown.map((s) => ({ name: s.name })))
+      setItemsByCategory(
+        breakdown.reduce((acc, sys) => {
+          acc[sys.name] = sys.items
+          return acc
+        }, {}),
+      )
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add system tab')
+      setError('Failed to refresh data')
     }
   }
 
-  const handleAddEntry = async (e) => {
+  const handleAddTab = () => {
+    const trimmed = newTabName.trim()
+    if (!trimmed) return
+
+    setCategories((prev) => [...prev, { name: trimmed }])
+    setItemsByCategory((prev) => ({ ...prev, [trimmed]: [] }))
+    setActiveTab(trimmed)
+    setAddTabModal(false)
+    setNewTabName('')
+  }
+
+  const handleSaveItem = async (e) => {
     e.preventDefault()
 
     const payload = {
-      itemNumber: formData.itemNumber || 'N/A',
+      system: activeTab,
+      itemNumber: formData.itemNumber || '',
       description: formData.description,
       unit: formData.unit,
       quantity: parseFloat(formData.quantity) || 0,
       rate: parseFloat(formData.rate) || 0,
-      category: activeTab,
     }
 
     try {
-      await api.post(`/api/boq/${projectId}`, payload)
+      if (editingItem) {
+        // Update
+        await api.put(`/api/boq-breakdown/${boqItemId}/items/${editingItem._id}`, payload)
+      } else {
+        // Create
+        await api.post(`/api/boq-breakdown/${boqItemId}/items`, payload)
+      }
 
-      // Refresh project to get updated items
-      const { data } = await api.get(`/api/projects/${projectId}`)
-      const newItemsByCat = data.boq.categories.reduce((acc, cat) => {
-        return { ...acc, [cat.name]: cat.items }
-      }, {})
-      setItemsByCategory(newItemsByCat)
+      await refreshBreakdown()
 
       setAddEntryModal(false)
+      setEditingItem(null)
       setFormData({ itemNumber: '', description: '', unit: '', quantity: '', rate: '' })
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to add item')
+      setError(err.response?.data?.message || 'Failed to save item')
+    }
+  }
+
+  const handleEditItem = (item) => {
+    setEditingItem(item)
+    setFormData({
+      itemNumber: item.itemNumber || '',
+      description: item.description,
+      unit: item.unit,
+      quantity: item.quantity,
+      rate: item.rate,
+    })
+    setAddEntryModal(true)
+  }
+
+  const handleDeleteItem = (item) => {
+    setItemToDelete(item)
+    setDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return
+
+    try {
+      await api.delete(`/api/boq-breakdown/${boqItemId}/items/${itemToDelete._id}`)
+      await refreshBreakdown()
+      setDeleteModal(false)
+      setItemToDelete(null)
+    } catch (err) {
+      setError('Failed to delete item')
     }
   }
 
@@ -233,7 +276,7 @@ const BoqItemDetails = () => {
           <CCardHeader className="border-bottom">
             <CNav variant="tabs">
               {categories.map((cat) => (
-                <CNavItem key={cat._id}>
+                <CNavItem key={cat.name}>
                   <CNavLink
                     active={activeTab === cat.name}
                     onClick={() => setActiveTab(cat.name)}
@@ -251,13 +294,9 @@ const BoqItemDetails = () => {
           </CCardHeader>
 
           <CCardBody>
-            {activeTab && itemsByCategory[activeTab]?.length === 0 ? (
+            {activeTab && (!itemsByCategory[activeTab] || itemsByCategory[activeTab].length === 0) ? (
               <div className="text-center py-5 text-muted">
-                <CIcon
-                  icon={getIconForCategory(activeTab)}
-                  size="4xl"
-                  className="mb-3 opacity-25"
-                />
+                <CIcon icon={getIconForCategory(activeTab)} size="4xl" className="mb-3 opacity-25" />
                 <h6>No items in {activeTab} yet</h6>
                 <p>Click "Add Item" to start building the rate</p>
               </div>
@@ -272,12 +311,13 @@ const BoqItemDetails = () => {
                       <CTableHeaderCell className="text-end">Qty</CTableHeaderCell>
                       <CTableHeaderCell className="text-end">Rate</CTableHeaderCell>
                       <CTableHeaderCell className="text-end">Total</CTableHeaderCell>
+                      <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
                     {itemsByCategory[activeTab]?.map((item) => (
                       <CTableRow key={item._id}>
-                        <CTableDataCell>{item.itemNumber}</CTableDataCell>
+                        <CTableDataCell>{item.itemNumber || '-'}</CTableDataCell>
                         <CTableDataCell>{item.description}</CTableDataCell>
                         <CTableDataCell>{item.unit}</CTableDataCell>
                         <CTableDataCell className="text-end">
@@ -289,15 +329,34 @@ const BoqItemDetails = () => {
                         <CTableDataCell className="text-end fw-bold text-primary">
                           {formatCurrency(item.total)}
                         </CTableDataCell>
+                        <CTableDataCell className="text-center">
+                          <CButton
+                            color="info"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditItem(item)}
+                            className="me-1"
+                          >
+                            <CIcon icon={cilPencil} size="sm" />
+                          </CButton>
+                          <CButton
+                            color="danger"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteItem(item)}
+                          >
+                            <CIcon icon={cilTrash} size="sm" />
+                          </CButton>
+                        </CTableDataCell>
                       </CTableRow>
                     ))}
                     <CTableRow className="fw-bold bg-light">
-                      <CTableDataCell colSpan={5} className="text-end">
+                      <CTableDataCell colSpan={6} className="text-end">
                         Total — {activeTab}
                       </CTableDataCell>
                       <CTableDataCell className="text-end text-success">
                         {formatCurrency(
-                          itemsByCategory[activeTab]?.reduce((sum, i) => sum + i.total, 0) || 0,
+                          itemsByCategory[activeTab]?.reduce((sum, i) => sum + (i.total || 0), 0) || 0
                         )}
                       </CTableDataCell>
                     </CTableRow>
@@ -309,12 +368,18 @@ const BoqItemDetails = () => {
         </CCard>
       )}
 
-      {/* Add Entry Modal */}
-      <CModal visible={addEntryModal} onClose={() => setAddEntryModal(false)} size="lg">
+      {/* Add/Edit Item Modal */}
+      <CModal visible={addEntryModal} onClose={() => {
+        setAddEntryModal(false)
+        setEditingItem(null)
+        setFormData({ itemNumber: '', description: '', unit: '', quantity: '', rate: '' })
+      }} size="lg">
         <CModalHeader>
-          <CModalTitle>Add Item — {activeTab}</CModalTitle>
+          <CModalTitle>
+            {editingItem ? 'Edit' : 'Add'} Item — {activeTab}
+          </CModalTitle>
         </CModalHeader>
-        <CForm onSubmit={handleAddEntry}>
+        <CForm onSubmit={handleSaveItem}>
           <CModalBody>
             <CRow className="g-3">
               <CCol md={3}>
@@ -373,21 +438,50 @@ const BoqItemDetails = () => {
             </CRow>
 
             {formData.quantity && formData.rate && (
-              <div className="mt-3 p-3 bg-light rounded">
+              <div className="mt-4 p-3 bg-light rounded">
                 <strong>Line Total: </strong>
-                {formatCurrency(formData.quantity * formData.rate)}
+                {formatCurrency((parseFloat(formData.quantity) || 0) * (parseFloat(formData.rate) || 0))}
               </div>
             )}
           </CModalBody>
           <CModalFooter>
-            <CButton color="light" onClick={() => setAddEntryModal(false)}>
+            <CButton color="light" onClick={() => {
+              setAddEntryModal(false)
+              setEditingItem(null)
+            }}>
               Cancel
             </CButton>
             <CButton color="primary" type="submit">
-              Save Item
+              {editingItem ? 'Update' : 'Save'} Item
             </CButton>
           </CModalFooter>
         </CForm>
+      </CModal>
+
+      {/* Delete Confirmation Modal */}
+      <CModal visible={deleteModal} onClose={() => setDeleteModal(false)} alignment="center">
+        <CModalHeader>
+          <CModalTitle>Confirm Delete</CModalTitle>
+        </CModalHeader>
+        <CModalBody className="text-center">
+          <CIcon icon={cilWarning} size="4xl" className="text-danger mb-3" />
+          <h5>Delete this item?</h5>
+          <p className="text-muted">
+            <strong>{itemToDelete?.description}</strong>
+            <br />
+            Qty: {itemToDelete?.quantity} × Rate: {formatCurrency(itemToDelete?.rate)} ={' '}
+            {formatCurrency(itemToDelete?.total)}
+          </p>
+          <small className="text-danger">This action cannot be undone.</small>
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="light" onClick={() => setDeleteModal(false)}>
+            Cancel
+          </CButton>
+          <CButton color="danger" onClick={confirmDelete}>
+            Yes, Delete
+          </CButton>
+        </CModalFooter>
       </CModal>
 
       {/* Add Tab Modal */}
