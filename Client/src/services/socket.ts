@@ -6,7 +6,7 @@ let socket = null
 export const initSocket = () => {
   if (socket) return socket
 
-  socket = io('http:// 192.168.3.37:5000', {
+  socket = io('http:// localhost:5000', {
     auth: {
       token: localStorage.getItem('token') || '', // send JWT so backend can authenticate
     },

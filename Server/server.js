@@ -1,3 +1,7 @@
+const dns = require('node:dns');
+dns.setDefaultResultOrder('ipv4first'); 
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -8,26 +12,26 @@ const { initSocket } = require("./socket/socket");
 
 const app = express();
 
-// CORS
-// app.use(
-//   cors({
-//     origin: "http://localhost:3000",
-//     credentials: true,
-//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//   }),
-// );
+// 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http:// 192.168.3.37:3000", // IP of your FAST machine frontend
-    ],
+    origin: "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:3000",
+//       "http:// 192.168.3.37:3000", 
+//     ],
+//     credentials: true,
+//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   }),
+// );
 
 
 app.use(express.json());
@@ -52,6 +56,6 @@ initSocket(server);
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔌 Socket.IO ready at http:// 192.168.3.37:${PORT}`);
+  console.log(`🔌 Socket.IO ready at http://localhost:${PORT}`);
 });
 

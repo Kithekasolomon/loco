@@ -6,7 +6,7 @@ let io;
 module.exports.initSocket = (server) => {
   io = require("socket.io")(server, {
     cors: {
-      origin: "http:// 192.168.3.37:3000",
+      origin: "http:// localhost:3000",
       methods: ["GET", "POST"],
       credentials: true,
     },
