@@ -26,7 +26,6 @@ router.put(
   audit("PROJECT_EDIT_REQUEST"),
   editProjectRequest,
 );
-
 router.delete(
   "/request-delete/:id",
   auth,

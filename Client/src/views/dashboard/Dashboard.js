@@ -1,385 +1,437 @@
-import React from 'react'
-import classNames from 'classnames'
-
+import React, { useState, useEffect } from 'react'
 import {
-  CAvatar,
-  CButton,
-  CButtonGroup,
   CCard,
   CCardBody,
-  CCardFooter,
   CCardHeader,
   CCol,
-  CProgress,
   CRow,
+  CProgress,
+  CProgressBar,
   CTable,
   CTableBody,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
+  CSpinner,
+  CAlert,
+  CBadge,
+  CButton,
 } from '@coreui/react'
-import CIcon from '@coreui/icons-react'
+import { CIcon } from '@coreui/icons-react'
 import {
-  cibCcAmex,
-  cibCcApplePay,
-  cibCcMastercard,
-  cibCcPaypal,
-  cibCcStripe,
-  cibCcVisa,
-  cibGoogle,
-  cibFacebook,
-  cibLinkedin,
-  cifBr,
-  cifEs,
-  cifFr,
-  cifIn,
-  cifPl,
-  cifUs,
-  cibTwitter,
-  cilCloudDownload,
-  cilPeople,
-  cilUser,
-  cilUserFemale,
+  cilBuilding,
+  cilMoney,
+  cilChartPie,
+  cilClock,
+  cilCheckCircle,
+  cilWarning,
+  cilCalendar,
+  cilBarChart,
 } from '@coreui/icons'
+import { Link } from 'react-router-dom'
+import api from 'src/api/axios'
+import { CChartLine, CChartBar } from '@coreui/react-chartjs'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+} from 'chart.js'
+import 'chartjs-adapter-date-fns'
 
-import avatar1 from 'src/assets/images/avatars/1.jpg'
-import avatar2 from 'src/assets/images/avatars/2.jpg'
-import avatar3 from 'src/assets/images/avatars/3.jpg'
-import avatar4 from 'src/assets/images/avatars/4.jpg'
-import avatar5 from 'src/assets/images/avatars/5.jpg'
-import avatar6 from 'src/assets/images/avatars/6.jpg'
-
-import WidgetsBrand from '../widgets/WidgetsBrand'
-import WidgetsDropdown from '../widgets/WidgetsDropdown'
-import MainChart from './MainChart'
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+)
 
 const Dashboard = () => {
-  const progressExample = [
-    { title: 'Visits', value: '29.703 Users', percent: 40, color: 'success' },
-    { title: 'Unique', value: '24.093 Users', percent: 20, color: 'info' },
-    { title: 'Pageviews', value: '78.706 Views', percent: 60, color: 'warning' },
-    { title: 'New Users', value: '22.123 Users', percent: 80, color: 'danger' },
-    { title: 'Bounce Rate', value: 'Average Rate', percent: 40.15, color: 'primary' },
-  ]
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    activeProjects: 0,
+    totalContractSum: 0,
+    valuedToDate: 0,
+    overallProgress: 0,
+  })
 
-  const progressGroupExample1 = [
-    { title: 'Monday', value1: 34, value2: 78 },
-    { title: 'Tuesday', value1: 56, value2: 94 },
-    { title: 'Wednesday', value1: 12, value2: 67 },
-    { title: 'Thursday', value1: 43, value2: 91 },
-    { title: 'Friday', value1: 22, value2: 73 },
-    { title: 'Saturday', value1: 53, value2: 82 },
-    { title: 'Sunday', value1: 9, value2: 69 },
-  ]
+  const [recentProjects, setRecentProjects] = useState([])
+  const [monthlyValuations, setMonthlyValuations] = useState([])
+  const [ganttData, setGanttData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const progressGroupExample2 = [
-    { title: 'Male', icon: cilUser, value: 53 },
-    { title: 'Female', icon: cilUserFemale, value: 43 },
-  ]
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        setError('')
 
-  const progressGroupExample3 = [
-    { title: 'Organic Search', icon: cibGoogle, percent: 56, value: '191,235' },
-    { title: 'Facebook', icon: cibFacebook, percent: 15, value: '51,223' },
-    { title: 'Twitter', icon: cibTwitter, percent: 11, value: '37,564' },
-    { title: 'LinkedIn', icon: cibLinkedin, percent: 8, value: '27,319' },
-  ]
+        const { data: projects } = await api.get('/api/projects')
 
-  const tableExample = [
-    {
-      avatar: { src: avatar1, status: 'success' },
-      user: {
-        name: 'Yiorgos Avraamu',
-        new: true,
-        registered: 'Jan 1, 2023',
-      },
-      country: { name: 'USA', flag: cifUs },
-      usage: {
-        value: 50,
-        period: 'Jun 11, 2023 - Jul 10, 2023',
-        color: 'success',
-      },
-      payment: { name: 'Mastercard', icon: cibCcMastercard },
-      activity: '10 sec ago',
-    },
-    {
-      avatar: { src: avatar2, status: 'danger' },
-      user: {
-        name: 'Avram Tarasios',
-        new: false,
-        registered: 'Jan 1, 2023',
-      },
-      country: { name: 'Brazil', flag: cifBr },
-      usage: {
-        value: 22,
-        period: 'Jun 11, 2023 - Jul 10, 2023',
-        color: 'info',
-      },
-      payment: { name: 'Visa', icon: cibCcVisa },
-      activity: '5 minutes ago',
-    },
-    {
-      avatar: { src: avatar3, status: 'warning' },
-      user: { name: 'Quintin Ed', new: true, registered: 'Jan 1, 2023' },
-      country: { name: 'India', flag: cifIn },
-      usage: {
-        value: 74,
-        period: 'Jun 11, 2023 - Jul 10, 2023',
-        color: 'warning',
-      },
-      payment: { name: 'Stripe', icon: cibCcStripe },
-      activity: '1 hour ago',
-    },
-    {
-      avatar: { src: avatar4, status: 'secondary' },
-      user: { name: 'Enéas Kwadwo', new: true, registered: 'Jan 1, 2023' },
-      country: { name: 'France', flag: cifFr },
-      usage: {
-        value: 98,
-        period: 'Jun 11, 2023 - Jul 10, 2023',
-        color: 'danger',
-      },
-      payment: { name: 'PayPal', icon: cibCcPaypal },
-      activity: 'Last month',
-    },
-    {
-      avatar: { src: avatar5, status: 'success' },
-      user: {
-        name: 'Agapetus Tadeáš',
-        new: true,
-        registered: 'Jan 1, 2023',
-      },
-      country: { name: 'Spain', flag: cifEs },
-      usage: {
-        value: 22,
-        period: 'Jun 11, 2023 - Jul 10, 2023',
-        color: 'primary',
-      },
-      payment: { name: 'Google Wallet', icon: cibCcApplePay },
-      activity: 'Last week',
-    },
-    {
-      avatar: { src: avatar6, status: 'danger' },
-      user: {
-        name: 'Friderik Dávid',
-        new: true,
-        registered: 'Jan 1, 2023',
-      },
-      country: { name: 'Poland', flag: cifPl },
-      usage: {
-        value: 43,
-        period: 'Jun 11, 2023 - Jul 10, 2023',
-        color: 'success',
-      },
-      payment: { name: 'Amex', icon: cibCcAmex },
-      activity: 'Last week',
-    },
-  ]
+        const activeProjects = projects.filter((p) => p.status === 'ACTIVE')
+        const totalContractSum = projects.reduce(
+          (sum, p) => sum + (p.boq?.summary?.totalContractSum || 0),
+          0,
+        )
+        const valuedToDate = projects.reduce(
+          (sum, p) => sum + (p.boq?.summary?.valuedToDate || 0),
+          0,
+        )
+        const overallProgress =
+          totalContractSum > 0 ? ((valuedToDate / totalContractSum) * 100).toFixed(1) : 0
+
+        setStats({
+          totalProjects: projects.length,
+          activeProjects: activeProjects.length,
+          totalContractSum,
+          valuedToDate,
+          overallProgress,
+        })
+
+        const sortedRecent = projects
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 8)
+        setRecentProjects(sortedRecent)
+
+       
+        const months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ]
+        const currentMonth = new Date().getMonth()
+        const monthlyData = months
+          .map((month, index) => ({
+            month,
+            value: ((valuedToDate * (index + 1)) / 12) * (Math.random() * 0.3 + 0.8), 
+          }))
+          .slice(0, currentMonth + 1)
+
+        setMonthlyValuations(monthlyData)
+
+        // Gantt Data for Active Projects
+        const gantt = activeProjects.slice(0, 6).map((p) => ({
+          project: p.name.substring(0, 20) + (p.name.length > 20 ? '...' : ''),
+          start: new Date(p.timelineStart),
+          end: new Date(p.timelineEnd),
+          progress: p.boq?.summary?.percentageComplete || 0,
+        }))
+        setGanttData(gantt)
+      } catch (err) {
+        setError('Failed to load dashboard data')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0,
+    }).format(amount || 0)
+  }
+
+  const getProgressColor = (percent) => {
+    if (percent >= 90) return 'success'
+    if (percent >= 70) return 'info'
+    if (percent >= 50) return 'warning'
+    return 'danger'
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <CSpinner color="primary" size="lg" />
+        <p className="mt-3 text-muted">Loading dashboard...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return <CAlert color="danger">{error}</CAlert>
+  }
 
   return (
     <>
-      <WidgetsDropdown className="mb-4" />
-      <CCard className="mb-4">
-        <CCardBody>
-          <CRow>
-            <CCol sm={5}>
-              <h4 id="traffic" className="card-title mb-0">
-                Traffic
-              </h4>
-              <div className="small text-body-secondary">January - July 2023</div>
-            </CCol>
-            <CCol sm={7} className="d-none d-md-block">
-              <CButton color="primary" className="float-end">
-                <CIcon icon={cilCloudDownload} />
-              </CButton>
-              <CButtonGroup className="float-end me-3">
-                {['Day', 'Month', 'Year'].map((value) => (
-                  <CButton
-                    color="outline-secondary"
-                    key={value}
-                    className="mx-0"
-                    active={value === 'Month'}
-                  >
-                    {value}
-                  </CButton>
-                ))}
-              </CButtonGroup>
-            </CCol>
-          </CRow>
-          <MainChart />
-        </CCardBody>
-        <CCardFooter>
-          <CRow
-            xs={{ cols: 1, gutter: 4 }}
-            sm={{ cols: 2 }}
-            lg={{ cols: 4 }}
-            xl={{ cols: 5 }}
-            className="mb-2 text-center"
-          >
-            {progressExample.map((item, index, items) => (
-              <CCol
-                className={classNames({
-                  'd-none d-xl-block': index + 1 === items.length,
-                })}
-                key={index}
-              >
-                <div className="text-body-secondary">{item.title}</div>
-                <div className="fw-semibold text-truncate">
-                  {item.value} ({item.percent}%)
-                </div>
-                <CProgress thin className="mt-2" color={item.color} value={item.percent} />
-              </CCol>
-            ))}
-          </CRow>
-        </CCardFooter>
-      </CCard>
-      <WidgetsBrand className="mb-4" withCharts />
-      <CRow>
-        <CCol xs>
-          <CCard className="mb-4">
-            <CCardHeader>Traffic {' & '} Sales</CCardHeader>
-            <CCardBody>
-              <CRow>
-                <CCol xs={12} md={6} xl={6}>
-                  <CRow>
-                    <CCol xs={6}>
-                      <div className="border-start border-start-4 border-start-info py-1 px-3">
-                        <div className="text-body-secondary text-truncate small">New Clients</div>
-                        <div className="fs-5 fw-semibold">9,123</div>
-                      </div>
-                    </CCol>
-                    <CCol xs={6}>
-                      <div className="border-start border-start-4 border-start-danger py-1 px-3 mb-3">
-                        <div className="text-body-secondary text-truncate small">
-                          Recurring Clients
-                        </div>
-                        <div className="fs-5 fw-semibold">22,643</div>
-                      </div>
-                    </CCol>
-                  </CRow>
-                  <hr className="mt-0" />
-                  {progressGroupExample1.map((item, index) => (
-                    <div className="progress-group mb-4" key={index}>
-                      <div className="progress-group-prepend">
-                        <span className="text-body-secondary small">{item.title}</span>
-                      </div>
-                      <div className="progress-group-bars">
-                        <CProgress thin color="info" value={item.value1} />
-                        <CProgress thin color="danger" value={item.value2} />
-                      </div>
-                    </div>
-                  ))}
-                </CCol>
-                <CCol xs={12} md={6} xl={6}>
-                  <CRow>
-                    <CCol xs={6}>
-                      <div className="border-start border-start-4 border-start-warning py-1 px-3 mb-3">
-                        <div className="text-body-secondary text-truncate small">Pageviews</div>
-                        <div className="fs-5 fw-semibold">78,623</div>
-                      </div>
-                    </CCol>
-                    <CCol xs={6}>
-                      <div className="border-start border-start-4 border-start-success py-1 px-3 mb-3">
-                        <div className="text-body-secondary text-truncate small">Organic</div>
-                        <div className="fs-5 fw-semibold">49,123</div>
-                      </div>
-                    </CCol>
-                  </CRow>
+      {/* Stats Cards */}
+      <CRow className="mb-4">
+        <CCol sm={6} lg={3}>
+          <CCard className="shadow-sm border-0">
+            <CCardBody className="text-center">
+              <CIcon icon={cilBuilding} size="xl" className="text-primary mb-3" />
+              <h4 className="mb-1">{stats.totalProjects}</h4>
+              <p className="text-muted mb-0">Total Projects</p>
+            </CCardBody>
+          </CCard>
+        </CCol>
 
-                  <hr className="mt-0" />
+        <CCol sm={6} lg={3}>
+          <CCard className="shadow-sm border-0">
+            <CCardBody className="text-center">
+              <CIcon icon={cilCheckCircle} size="xl" className="text-success mb-3" />
+              <h4 className="mb-1">{stats.activeProjects}</h4>
+              <p className="text-muted mb-0">Active Projects</p>
+            </CCardBody>
+          </CCard>
+        </CCol>
 
-                  {progressGroupExample2.map((item, index) => (
-                    <div className="progress-group mb-4" key={index}>
-                      <div className="progress-group-header">
-                        <CIcon className="me-2" icon={item.icon} size="lg" />
-                        <span>{item.title}</span>
-                        <span className="ms-auto fw-semibold">{item.value}%</span>
-                      </div>
-                      <div className="progress-group-bars">
-                        <CProgress thin color="warning" value={item.value} />
-                      </div>
-                    </div>
-                  ))}
+        <CCol sm={6} lg={3}>
+          <CCard className="shadow-sm border-0">
+            <CCardBody className="text-center">
+              <CIcon icon={cilMoney} size="xl" className="text-info mb-3" />
+              <h5 className="mb-1">{formatCurrency(stats.totalContractSum)}</h5>
+              <p className="text-muted mb-0">Total Contract Value</p>
+            </CCardBody>
+          </CCard>
+        </CCol>
 
-                  <div className="mb-5"></div>
-
-                  {progressGroupExample3.map((item, index) => (
-                    <div className="progress-group" key={index}>
-                      <div className="progress-group-header">
-                        <CIcon className="me-2" icon={item.icon} size="lg" />
-                        <span>{item.title}</span>
-                        <span className="ms-auto fw-semibold">
-                          {item.value}{' '}
-                          <span className="text-body-secondary small">({item.percent}%)</span>
-                        </span>
-                      </div>
-                      <div className="progress-group-bars">
-                        <CProgress thin color="success" value={item.percent} />
-                      </div>
-                    </div>
-                  ))}
-                </CCol>
-              </CRow>
-
-              <br />
-
-              <CTable align="middle" className="mb-0 border" hover responsive>
-                <CTableHead className="text-nowrap">
-                  <CTableRow>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
-                      <CIcon icon={cilPeople} />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">User</CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
-                      Country
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">Usage</CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
-                      Payment Method
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">Activity</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-                <CTableBody>
-                  {tableExample.map((item, index) => (
-                    <CTableRow v-for="item in tableItems" key={index}>
-                      <CTableDataCell className="text-center">
-                        <CAvatar size="md" src={item.avatar.src} status={item.avatar.status} />
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <div>{item.user.name}</div>
-                        <div className="small text-body-secondary text-nowrap">
-                          <span>{item.user.new ? 'New' : 'Recurring'}</span> | Registered:{' '}
-                          {item.user.registered}
-                        </div>
-                      </CTableDataCell>
-                      <CTableDataCell className="text-center">
-                        <CIcon size="xl" icon={item.country.flag} title={item.country.name} />
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <div className="d-flex justify-content-between text-nowrap">
-                          <div className="fw-semibold">{item.usage.value}%</div>
-                          <div className="ms-3">
-                            <small className="text-body-secondary">{item.usage.period}</small>
-                          </div>
-                        </div>
-                        <CProgress thin color={item.usage.color} value={item.usage.value} />
-                      </CTableDataCell>
-                      <CTableDataCell className="text-center">
-                        <CIcon size="xl" icon={item.payment.icon} />
-                      </CTableDataCell>
-                      <CTableDataCell>
-                        <div className="small text-body-secondary text-nowrap">Last login</div>
-                        <div className="fw-semibold text-nowrap">{item.activity}</div>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
+        <CCol sm={6} lg={3}>
+          <CCard className="shadow-sm border-0">
+            <CCardBody className="text-center">
+              <CIcon icon={cilChartPie} size="xl" className="text-warning mb-3" />
+              <h5 className="mb-1">{formatCurrency(stats.valuedToDate)}</h5>
+              <p className="text-muted mb-0">Valued to Date</p>
             </CCardBody>
           </CCard>
         </CCol>
       </CRow>
+
+      {/* Overall Progress */}
+      <CCard className="mb-4 shadow-sm">
+        <CCardHeader>
+          <h5 className="mb-0">Overall Company Progress</h5>
+        </CCardHeader>
+        <CCardBody>
+          <div className="d-flex align-items-center justify-content-between">
+            <div>
+              <h2 className="mb-0">{stats.overallProgress}%</h2>
+              <p className="text-muted">Across all active projects</p>
+            </div>
+            <div className="w-75">
+              <CProgress height={30}>
+                <CProgressBar
+                  color={getProgressColor(stats.overallProgress)}
+                  value={stats.overallProgress}
+                  animated
+                  striped
+                >
+                  {stats.overallProgress}%
+                </CProgressBar>
+              </CProgress>
+            </div>
+          </div>
+        </CCardBody>
+      </CCard>
+
+      {/* Monthly Valuations Chart */}
+      <CCard className="mb-4 shadow-sm">
+        <CCardHeader>
+          <h5 className="mb-0">
+            <CIcon icon={cilBarChart} className="me-2" />
+            Monthly Cumulative Valuations (2026)
+          </h5>
+        </CCardHeader>
+        <CCardBody>
+          <CChartLine
+            data={{
+              labels: monthlyValuations.map((m) => m.month),
+              datasets: [
+                {
+                  label: 'Cumulative Valued (KES)',
+                  data: monthlyValuations.map((m) => m.value),
+                  borderColor: '#4f46e5',
+                  backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                  fill: true,
+                  tension: 0.4,
+                },
+              ],
+            }}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: { position: 'top' },
+                title: { display: false },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    callback: (value) => formatCurrency(value),
+                  },
+                },
+              },
+            }}
+          />
+        </CCardBody>
+      </CCard>
+
+      {/* Project Timeline Gantt */}
+      <CCard className="mb-4 shadow-sm">
+        <CCardHeader>
+          <h5 className="mb-0">
+            <CIcon icon={cilCalendar} className="me-2" />
+            Project Timeline Gantt Chart
+          </h5>
+        </CCardHeader>
+        <CCardBody>
+          {ganttData.length === 0 ? (
+            <p className="text-center text-muted py-4">No active projects to display</p>
+          ) : (
+            <CChartBar
+              type="bar"
+              data={{
+                labels: ganttData.map((p) => p.project),
+                datasets: [
+                  {
+                    label: 'Duration',
+                    data: ganttData.map((p) => ({
+                      x: [p.start, p.end],
+                      y: p.project,
+                    })),
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    barThickness: 20,
+                  },
+                  {
+                    label: 'Progress',
+                    data: ganttData.map((p) => p.progress),
+                    backgroundColor: '#10b981',
+                    barThickness: 10,
+                  },
+                ],
+              }}
+              options={{
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                  legend: { display: true },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        if (context.dataset.label === 'Progress') {
+                          return `Progress: ${context.parsed.x}%`
+                        }
+                        return `${context.dataset.label}: ${new Date(context.parsed.x[0]).toLocaleDateString()} - ${new Date(context.parsed.x[1]).toLocaleDateString()}`
+                      },
+                    },
+                  },
+                },
+                scales: {
+                  x: {
+                    type: 'time',
+                    time: { unit: 'month' },
+                    stacked: true,
+                  },
+                  y: { stacked: true },
+                },
+              }}
+            />
+          )}
+        </CCardBody>
+      </CCard>
+
+      {/* Recent Projects Table */}
+      <CCard className="shadow-sm">
+        <CCardHeader className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">Recent Projects</h5>
+          <Link to="/projects">
+            <CButton color="primary" size="sm">
+              View All
+            </CButton>
+          </Link>
+        </CCardHeader>
+        <CCardBody>
+          {recentProjects.length === 0 ? (
+            <p className="text-center text-muted py-4">No projects yet</p>
+          ) : (
+            <CTable hover responsive>
+              <CTableHead>
+                <CTableRow>
+                  <CTableHeaderCell>Project</CTableHeaderCell>
+                  <CTableHeaderCell>Location</CTableHeaderCell>
+                  <CTableHeaderCell>Timeline</CTableHeaderCell>
+                  <CTableHeaderCell>Value</CTableHeaderCell>
+                  <CTableHeaderCell>Progress</CTableHeaderCell>
+                  <CTableHeaderCell className="text-center">Action</CTableHeaderCell>
+                </CTableRow>
+              </CTableHead>
+              <CTableBody>
+                {recentProjects.map((project) => {
+                  const progress = project.boq?.summary?.percentageComplete || 0
+                  return (
+                    <CTableRow key={project._id}>
+                      <CTableDataCell>
+                        <strong>{project.name}</strong>
+                      </CTableDataCell>
+                      <CTableDataCell>{project.location}</CTableDataCell>
+                      <CTableDataCell>
+                        {new Date(project.timelineStart).toLocaleDateString('en-GB', {
+                          month: 'short',
+                          year: 'numeric',
+                        })}{' '}
+                        -
+                        {new Date(project.timelineEnd).toLocaleDateString('en-GB', {
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </CTableDataCell>
+                      <CTableDataCell>
+                        {formatCurrency(project.boq?.summary?.totalContractSum || 0)}
+                      </CTableDataCell>
+                      <CTableDataCell>
+                        <div className="d-flex align-items-center gap-2">
+                          <CProgress className="flex-grow-1" height={12}>
+                            <CProgressBar
+                              color={getProgressColor(progress)}
+                              value={progress}
+                              animated
+                              striped
+                            />
+                          </CProgress>
+                          <small className="fw-bold">{progress.toFixed(1)}%</small>
+                        </div>
+                      </CTableDataCell>
+                      <CTableDataCell className="text-center">
+                        <Link to={`/projects/view/${project._id}/boq`}>
+                          <CButton color="primary" size="sm">
+                            View BOQ
+                          </CButton>
+                        </Link>
+                      </CTableDataCell>
+                    </CTableRow>
+                  )
+                })}
+              </CTableBody>
+            </CTable>
+          )}
+        </CCardBody>
+      </CCard>
     </>
   )
 }

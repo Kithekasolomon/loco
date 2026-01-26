@@ -9,21 +9,31 @@ const { initSocket } = require("./socket/socket");
 const app = express();
 
 // CORS
+// app.use(
+//   cors({
+//     origin: "http://localhost:3000",
+//     credentials: true,
+//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   }),
+// );
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "http:// 192.168.3.37:3000", // IP of your FAST machine frontend
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
+
 app.use(express.json());
 
-// Database & Seed
 connectDB().then(seedSuperAdmin);
 
-// Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/roles", require("./routes/roleRoutes"));
@@ -35,15 +45,13 @@ app.use("/api/boq", require("./routes/boqRoutes"));
 app.use("/api/boq-categories", require("./routes/boqCategoryRoutes"));
 app.use("/api/boq-breakdown", require("./routes/boqBreakdownRoutes"));
 
-// Create HTTP server
 const server = http.createServer(app);
 
-// Initialize Socket.IO on this server
 initSocket(server);
 
-// Start listening (ONLY ONCE!)
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔌 Socket.IO ready at http://localhost:${PORT}`);
+  console.log(`🔌 Socket.IO ready at http:// 192.168.3.37:${PORT}`);
 });
+
