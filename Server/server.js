@@ -48,6 +48,7 @@ app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/boq", require("./routes/boqRoutes"));
 app.use("/api/boq-categories", require("./routes/boqCategoryRoutes"));
 app.use("/api/boq-breakdown", require("./routes/boqBreakdownRoutes"));
+app.use("/api/accounts", require("./routes/accountRoutes"));
 
 const server = http.createServer(app);
 

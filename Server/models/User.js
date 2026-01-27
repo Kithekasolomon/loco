@@ -12,7 +12,13 @@ const userSchema = new mongoose.Schema(
     role: {
   type: mongoose.Schema.Types.ObjectId,
   ref: "Role",
-},
+    },
+    
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+    },
     isActive: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

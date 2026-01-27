@@ -13,7 +13,55 @@ module.exports.execute = async (approval) => {
   const { actionType, payload } = approval;
 
   switch (actionType) {
-    // ==================== USER ACTIONS (Existing) ====================
+        // ==================== ACCOUNT ACTIONS ====================
+    case "CREATE_ACCOUNT": {
+      const account = await Account.create({
+        ...payload,
+      });
+
+      await AuditLog.create({
+        action: "ACCOUNT_CREATED",
+        performedBy: approval.reviewedBy || approval.requestedBy,
+        metadata: { accountId: account._id, accountName: account.name },
+        status: "SUCCESS",
+      });
+
+      return account;
+    }
+
+    case "EDIT_ACCOUNT": {
+      const updated = await Account.findByIdAndUpdate(
+        payload.accountId,
+        payload.updates,
+        { new: true }
+      );
+
+      await AuditLog.create({
+        action: "ACCOUNT_EDITED",
+        performedBy: approval.reviewedBy,
+        metadata: { accountId: payload.accountId },
+        status: "SUCCESS",
+      });
+
+      return updated;
+    }
+
+    case "DELETE_ACCOUNT": {
+      const account = await Account.findById(payload.accountId);
+      if (!account) throw new Error("Account not found");
+
+      // Soft delete or check if it has transactions first (in real app)
+      await Account.findByIdAndUpdate(payload.accountId, { isActive: false });
+
+      await AuditLog.create({
+        action: "ACCOUNT_DELETED",
+        performedBy: approval.reviewedBy,
+        metadata: { accountId: payload.accountId, accountName: account.name },
+        status: "SUCCESS",
+      });
+
+      return { deleted: true };
+    }
     case "CREATE_USER": {
       const tempPassword = Math.random().toString(36).slice(-8);
       const hashed = await bcrypt.hash(tempPassword, 10);
