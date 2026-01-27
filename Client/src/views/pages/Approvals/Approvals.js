@@ -57,16 +57,13 @@ const Approvals = () => {
   const [success, setSuccess] = useState(null)
   const [processingId, setProcessingId] = useState(null)
 
-  // Filters
   const [filterStatus, setFilterStatus] = useState('PENDING')
   const [filterType, setFilterType] = useState('')
 
-  // Review modal
   const [modalVisible, setModalVisible] = useState(false)
   const [selectedApproval, setSelectedApproval] = useState(null)
   const [reviewComment, setReviewComment] = useState('')
 
-  // Fetch approvals
   useEffect(() => {
     const fetchApprovals = async () => {
       try {
@@ -88,7 +85,6 @@ const Approvals = () => {
     fetchApprovals()
   }, [isSuperAdmin])
 
-  // Client-side filtering
   const filteredApprovals = approvals.filter((approval) => {
     const matchStatus = filterStatus === 'ALL' || approval.status === filterStatus
     const matchType = !filterType || approval.actionType.includes(filterType.toUpperCase())

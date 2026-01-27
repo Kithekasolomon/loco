@@ -13,7 +13,53 @@ module.exports.execute = async (approval) => {
   const { actionType, payload } = approval;
 
   switch (actionType) {
-        // ==================== ACCOUNT ACTIONS ====================
+    // ==================== CONTACT ACTIONS ====================
+    case "CREATE_CONTACT": {
+      const contact = await Contact.create(payload);
+
+      await AuditLog.create({
+        action: "CONTACT_CREATED",
+        performedBy: approval.reviewedBy || approval.requestedBy,
+        metadata: { contactId: contact._id, displayName: contact.displayName, type: contact.type },
+        status: "SUCCESS",
+      });
+
+      return contact;
+    }
+
+    case "EDIT_CONTACT": {
+      const updated = await Contact.findByIdAndUpdate(
+        payload.contactId,
+        payload.updates,
+        { new: true }
+      );
+
+      await AuditLog.create({
+        action: "CONTACT_EDITED",
+        performedBy: approval.reviewedBy,
+        metadata: { contactId: payload.contactId },
+        status: "SUCCESS",
+      });
+
+      return updated;
+    }
+
+    case "DELETE_CONTACT": {
+      const contact = await Contact.findById(payload.contactId);
+      if (!contact) throw new Error("Contact not found");
+
+      // Soft delete (or check if used in transactions first)
+      await Contact.findByIdAndUpdate(payload.contactId, { isActive: false });
+
+      await AuditLog.create({
+        action: "CONTACT_DELETED",
+        performedBy: approval.reviewedBy,
+        metadata: { contactId: payload.contactId, displayName: contact.displayName },
+        status: "SUCCESS",
+      });
+
+      return { deleted: true };
+    }
     case "CREATE_ACCOUNT": {
       const account = await Account.create({
         ...payload,
