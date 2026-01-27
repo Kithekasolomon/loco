@@ -108,7 +108,7 @@ exports.reviewApproval = async (req, res) => {
       `<p>Your ${approval.actionType.replace(/_/g, " ")} request was <strong>${status}</strong>.</p>`,
     );
 
-    // If creation approved, send additional email to new user (handled in executor, but confirm here if needed)
+   
 
     // Real-time update to requester
     notification.notifyUser(approval.requestedBy._id, "approval:status", {

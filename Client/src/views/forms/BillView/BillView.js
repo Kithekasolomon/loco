@@ -10,6 +10,11 @@ import {
     CRow,
     CTable,
     CSpinner,
+    CTableHead,
+    CTableRow,
+    CTableHeaderCell,
+    CTableBody,
+    CTableDataCell,
     CAlert,
     CBadge,
 } from '@coreui/react'

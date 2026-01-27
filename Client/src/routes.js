@@ -3,6 +3,11 @@ import ProjectList from './views/pages/projectManagement/ProjectList/ProjectList
 const Payments = React.lazy(() => import('./views/forms/Payments/Payments'))
 const CreatePayment = React.lazy(() => import('./views/forms/Payments/CreatePayment'))
 const PaymentView = React.lazy(() => import('./views/forms/Payments/PaymentView'))
+const ProfitLoss = React.lazy(() => import('./views/forms/reports/ProfitLoss'))
+const Reports = React.lazy(() => import('./views/forms/reports/Reports'))
+const BalanceSheet = React.lazy(() => import('./views/forms/reports/BalanceSheet'))
+const ARAging = React.lazy(() => import('./views/forms/reports/ARAging'))
+const APAging = React.lazy(() => import('./views/forms/reports/APAging'))
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
@@ -44,7 +49,7 @@ const InvoiceView = React.lazy(
 
 
 const ButtonGroups = React.lazy(() => import('./views/buttons/button-groups/ButtonGroups'))
-const Reports = React.lazy(() => import('./views/Reports/Reports/Reports'))
+
 
 //Forms
 const ApprovalList = React.lazy(() => import('./views/pages/Approvals/ApprovalList/ApprovalList'))
@@ -99,7 +104,7 @@ const routes = [
   { path: '/projects', name: 'Project Management', element: Buttons, exact: true },
 
   { path: '/project/tasks', name: 'Project Tasks', element: Buttons },
-  { path: '/project/reports', name: 'Project Reports', element: Reports },
+ 
   { path: '/projects/view/:id', name: 'View Project BOQ', element: BoqView },
   { path: '/projects/edit/:id', name: 'Edit Project', element: EditProject },
   { path: '/project/lists', name: 'Project Lists', element: ProjectList },
@@ -167,6 +172,12 @@ const routes = [
   { path: '/payments', name: 'Payments', element: Payments },
   { path: '/payments/create', name: 'Record Payment', element: CreatePayment },
   { path: '/payments/:id', name: 'View Payment', element: PaymentView },
+
+  { path: '/reports', name: 'Reports', element: Reports },
+  { path: '/reports/profit-loss', name: 'Profit & Loss', element: ProfitLoss },
+  { path: '/reports/balance-sheet', name: 'Balance Sheet', element: BalanceSheet },
+  { path: '/reports/ar-aging', name: 'A/R Aging', element: ARAging },
+  { path: '/reports/ap-aging', name: 'A/P Aging', element: APAging },
 
   { path: '/widgets', name: 'Widgets', element: Widgets },
 ]

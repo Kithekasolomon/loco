@@ -29,9 +29,9 @@ const CreatePayment = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const [type, setType] = useState('RECEIVED') // RECEIVED or MADE
+    const [type, setType] = useState('RECEIVED') 
     const [contacts, setContacts] = useState([])
-    const [documents, setDocuments] = useState([]) // Invoices or Bills
+    const [documents, setDocuments] = useState([]) 
     const [bankAccounts, setBankAccounts] = useState([])
 
     const [formData, setFormData] = useState({
@@ -42,7 +42,7 @@ const CreatePayment = () => {
         reference: '',
         notes: '',
         account: '',
-        appliedTo: [], // { invoice/bill id, amountApplied }
+        appliedTo: [], 
     })
 
     useEffect(() => {
@@ -57,7 +57,7 @@ const CreatePayment = () => {
             const [contactRes, docRes, accRes] = await Promise.all([
                 api.get(`/api/contacts?type=${contactType}`),
                 api.get(docEndpoint),
-                api.get('/api/accounts?subType=Bank'), // or Cash
+                api.get('/api/accounts?subType=Bank'), 
             ])
 
             setContacts(contactRes.data)

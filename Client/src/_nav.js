@@ -448,6 +448,33 @@ const _nav = [
         name: 'Bills List',
         to: '/bills',
       },
+
+
+      {
+        component: CNavItem,
+        name: 'Reports',
+        to: '/reports',
+      },
+      {
+        component: CNavItem,
+        name: 'Profit & Loss',
+        to: '/reports/profit-loss',
+      },
+      {
+        component: CNavItem,
+        name: 'Balance Sheet',
+        to: '/reports/balance-sheet',
+      },
+      {
+        component: CNavItem,
+        name: 'Accounts Receivable Aging',
+        to: '/reports/ar-aging',
+      },
+      {
+        component: CNavItem,
+        name: 'Accounts Payable Aging',
+        to: '/reports/ap-aging',
+      },
       // {
       //   component: CNavItem,
       //   name: 'CreateBill',
