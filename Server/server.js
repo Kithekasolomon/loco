@@ -36,8 +36,10 @@ app.use(
 
 app.use(express.json());
 
-connectDB().then(seedSuperAdmin);
-
+connectDB().then(() => {
+  seedSuperAdmin();
+  require("./utils/seedAccounts")();
+});
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/roles", require("./routes/roleRoutes"));
@@ -50,6 +52,10 @@ app.use("/api/boq-categories", require("./routes/boqCategoryRoutes"));
 app.use("/api/boq-breakdown", require("./routes/boqBreakdownRoutes"));
 app.use("/api/accounts", require("./routes/accountRoutes"));
 app.use("/api/contacts", require("./routes/contactRoutes"));
+app.use("/api/invoices", require("./routes/invoiceRoutes"));
+app.use("/api/bills", require("./routes/billRoutes"));
+app.use("/api/payments", require("./routes/paymentRoutes"));
+app.use("/api/reports", require("./routes/reportRoutes"));
 
 
 const server = http.createServer(app);

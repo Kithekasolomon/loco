@@ -1,18 +1,200 @@
-// services/approvalExecutor.js
 
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const sendEmail = require("../utils/sendEmail");
 const AuditLog = require("../models/AuditLog");
-
-// New models
+const Transaction = require("../models/Transaction");
+const Invoice = require("../models/Invoice");
+const Bill = require("../models/Bill");
+const Payment = require("../models/Payment");
 const Project = require("../models/Project");
 const BoqItem = require("../models/BoqItem");
 
 module.exports.execute = async (approval) => {
   const { actionType, payload } = approval;
+  let accountsCache = {};
+
+  const getDefaultAccount = async (subType) => {
+    if (accountsCache[subType]) return accountsCrowded[subType];
+
+    const account = await Account.findOne({ subType }).lean();
+    if (!account) {
+      throw new Error(`Default account not found for subType: ${subType}. Please create one in Chart of Accounts.`);
+    }
+
+    accountsCache[subType] = account;
+    return account;
+  }
 
   switch (actionType) {
+
+
+    case "CREATE_PAYMENT": {
+      const payment = await Payment.create(payload);
+
+      if (payment.status !== "DRAFT") {
+        const arAccount = await getDefaultAccount("Accounts Receivable");
+        const apAccount = await getDefaultAccount("Accounts Payable");
+        const bankAccount = payment.account;
+
+        const entries = [];
+
+        if (payment.type === "RECEIVED") {
+          // Debit Bank/Cash, Credit A/R
+          entries.push({ account: bankAccount, debit: payment.amount, credit: 0 });
+          entries.push({ account: arAccount._id, debit: 0, credit: payment.amount });
+        } else {
+          // Debit A/P, Credit Bank/Cash
+          entries.push({ account: apAccount._id, debit: payment.amount, credit: 0 });
+          entries.push({ account: bankAccount, debit: 0, credit: payment.amount });
+        }
+
+        const transaction = await Transaction.create({
+          transactionNumber: `TXN-${payment.paymentNumber}`,
+          transactionDate: payment.paymentDate,
+          reference: payment.paymentNumber,
+          description: `${payment.type === "RECEIVED" ? "Payment received from" : "Payment made to"} ${payment.contact.displayName || "Contact"}`,
+          sourceType: "PAYMENT",
+          sourceId: payment._id,
+          contact: payment.contact,
+          entries,
+          posted: true,
+          postedBy: approval.reviewedBy,
+          postedAt: new Date(),
+        });
+
+        payment.transaction = transaction._id;
+        await payment.save();
+
+        
+      }
+
+      await AuditLog.create({
+        action: "PAYMENT_CREATED",
+        performedBy: approval.reviewedBy,
+        metadata: { paymentId: payment._id, paymentNumber: payment.paymentNumber, type: payment.type },
+        status: "SUCCESS",
+      });
+
+      return payment;
+    }
+
+
+
+    // ==================== BILL ACTIONS ====================
+    case "CREATE_BILL":
+    case "EDIT_BILL": {
+      const data = actionType === "CREATE_BILL" ? payload : payload.updates;
+      const bill = actionType === "CREATE_BILL"
+        ? await Bill.create(data)
+        : await Bill.findByIdAndUpdate(payload.billId, data, { new: true });
+
+      if (bill.status !== "DRAFT") {
+        const apAccount = await getDefaultAccount("Accounts Payable");
+        const expenseEntries = bill.items.map(item => ({
+          account: item.account,
+          debit: item.amount,
+          credit: 0,
+        }));
+
+        const transaction = await Transaction.create({
+          transactionNumber: `TXN-${bill.billNumber}`,
+          transactionDate: bill.billDate,
+          reference: bill.billNumber,
+          description: `Bill ${bill.billNumber} from ${bill.vendor.displayName || "Vendor"}`,
+          sourceType: "BILL",
+          sourceId: bill._id,
+          contact: bill.vendor,
+          entries: [
+            ...expenseEntries,
+            { account: apAccount._id, debit: 0, credit: bill.total },
+          ],
+          posted: true,
+          postedBy: approval.reviewedBy,
+          postedAt: new Date(),
+          createdBy: approval.requestedBy,
+        });
+
+        bill.transaction = transaction._id;
+        await bill.save();
+      }
+
+      await AuditLog.create({
+        action: actionType === "CREATE_BILL" ? "BILL_CREATED" : "BILL_EDITED",
+        performedBy: approval.reviewedBy,
+        metadata: { billId: bill._id, billNumber: bill.billNumber },
+        status: "SUCCESS",
+      });
+
+      return bill;
+    }
+
+    case "DELETE_BILL": {
+      await Bill.findByIdAndUpdate(payload.billId, { status: "CANCELLED" });
+      await AuditLog.create({
+        action: "BILL_CANCELLED",
+        performedBy: approval.reviewedBy,
+        metadata: { billId: payload.billId },
+        status: "SUCCESS",
+      });
+      return { cancelled: true };
+    }
+
+    case "CREATE_INVOICE":
+    case "EDIT_INVOICE": {
+      const data = actionType === "CREATE_INVOICE" ? payload : payload.updates;
+      const invoice = actionType === "CREATE_INVOICE"
+        ? await Invoice.create(data)
+        : await Invoice.findByIdAndUpdate(payload.invoiceId, data, { new: true });
+
+      if (invoice.status !== "DRAFT") {
+        const transaction = await Transaction.create({
+          transactionNumber: `TXN-${invoice.invoiceNumber}`,
+          transactionDate: invoice.invoiceDate,
+          reference: invoice.invoiceNumber,
+          description: `Invoice ${invoice.invoiceNumber} to ${invoice.customer.displayName || 'Customer'}`,
+          sourceType: "INVOICE",
+          sourceId: invoice._id,
+          contact: invoice.customer,
+          entries: [
+            { account: await getAccountByType("Accounts Receivable"), debit: invoice.total, credit: 0 },
+            ...invoice.items.map(item => ({
+              account: item.account,
+              debit: 0,
+              credit: item.amount,
+            })),
+          ],
+          posted: true,
+          postedBy: approval.reviewedBy,
+          postedAt: new Date(),
+          createdBy: approval.requestedBy,
+        });
+
+        invoice.transaction = transaction._id;
+        await invoice.save();
+      }
+
+      await AuditLog.create({
+        action: actionType === "CREATE_INVOICE" ? "INVOICE_CREATED" : "INVOICE_EDITED",
+        performedBy: approval.reviewedBy,
+        targetUser: null,
+        metadata: { invoiceId: invoice._id, invoiceNumber: invoice.invoiceNumber },
+        status: "SUCCESS",
+      });
+
+      return invoice;
+    }
+
+    case "DELETE_INVOICE": {
+      await Invoice.findByIdAndUpdate(payload.invoiceId, { status: "CANCELLED" });
+      await AuditLog.create({
+        action: "INVOICE_DELETED",
+        performedBy: approval.reviewedBy,
+        metadata: { invoiceId: payload.invoiceId },
+      });
+      return { deleted: true };
+    }
+
     // ==================== CONTACT ACTIONS ====================
     case "CREATE_CONTACT": {
       const contact = await Contact.create(payload);
@@ -48,7 +230,6 @@ module.exports.execute = async (approval) => {
       const contact = await Contact.findById(payload.contactId);
       if (!contact) throw new Error("Contact not found");
 
-      // Soft delete (or check if used in transactions first)
       await Contact.findByIdAndUpdate(payload.contactId, { isActive: false });
 
       await AuditLog.create({
@@ -96,7 +277,6 @@ module.exports.execute = async (approval) => {
       const account = await Account.findById(payload.accountId);
       if (!account) throw new Error("Account not found");
 
-      // Soft delete or check if it has transactions first (in real app)
       await Account.findByIdAndUpdate(payload.accountId, { isActive: false });
 
       await AuditLog.create({
@@ -234,7 +414,7 @@ module.exports.execute = async (approval) => {
       const project = await Project.findById(payload.projectId);
       if (!project) throw new Error("Project not found");
 
-      await BoqItem.deleteMany({ project: payload.projectId }); // Cascade delete BOQ
+      await BoqItem.deleteMany({ project: payload.projectId });
       await Project.deleteOne({ _id: payload.projectId });
 
       await AuditLog.create({

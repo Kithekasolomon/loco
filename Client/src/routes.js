@@ -1,5 +1,8 @@
 import React from 'react'
 import ProjectList from './views/pages/projectManagement/ProjectList/ProjectList'
+const Payments = React.lazy(() => import('./views/forms/Payments/Payments'))
+const CreatePayment = React.lazy(() => import('./views/forms/Payments/CreatePayment'))
+const PaymentView = React.lazy(() => import('./views/forms/Payments/PaymentView'))
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
@@ -8,6 +11,9 @@ const BoqView = React.lazy(() => import('./views/pages/projectManagement/BoqView
 const EditProject = React.lazy(
   () => import('./views/pages/projectManagement/EditProject/EditProject'),
 )
+const Contacts = React.lazy(() => import('./views/forms/Contacts/Contacts'))
+const CreateContact = React.lazy(() => import('./views/forms/Contacts/CreateContact'))
+const ContactView = React.lazy(() => import('./views/forms/Contacts/ContactView'))
 
 // Base
 const UserList = React.lazy(() => import('./views/pages/userManagement/UserList/UserList'))
@@ -32,20 +38,23 @@ const Buttons = React.lazy(() => import('./views/pages/projectManagement/Project
 const BoqItemDetails = React.lazy(
   () => import('./views/pages/projectManagement/BoqItemDetails/BoqItemDetails'),
 )
+const InvoiceView = React.lazy(
+  () => import('./views/forms/Invoice/InvoiceView/InvoiceView'),
+)
 
 
 const ButtonGroups = React.lazy(() => import('./views/buttons/button-groups/ButtonGroups'))
-const Dropdowns = React.lazy(() => import('./views/buttons/dropdowns/Dropdowns'))
+const Reports = React.lazy(() => import('./views/Reports/Reports/Reports'))
 
 //Forms
 const ApprovalList = React.lazy(() => import('./views/pages/Approvals/ApprovalList/ApprovalList'))
 const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/FloatingLabels'))
 const FormControl = React.lazy(() => import('./views/forms/form-control/FormControl'))
 const InputGroup = React.lazy(() => import('./views/forms/input-group/InputGroup'))
-const Layout = React.lazy(() => import('./views/forms/layout/Layout'))
+const Invoice = React.lazy(() => import('./views/forms/Invoice/Invoice'))
 const Approvals = React.lazy(() => import('./views/pages/Approvals/Approvals'))
-const Select = React.lazy(() => import('./views/forms/select/Select'))
-const Validation = React.lazy(() => import('./views/forms/validation/Validation'))
+
+const CreateInvoice = React.lazy(() => import('./views/forms/CreateInvoice/CreateInvoice'))
 
 const Charts = React.lazy(() => import('./views/charts/Charts'))
 
@@ -56,9 +65,10 @@ const Brands = React.lazy(() => import('./views/icons/brands/Brands'))
 
 // Notifications
 const NotificationList = React.lazy(() => import('./views/pages/notifications/Notifications/NotificationList'))
-const Badges = React.lazy(() => import('./views/notifications/badges/Badges'))
-const Modals = React.lazy(() => import('./views/notifications/modals/Modals'))
-const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
+const Customers = React.lazy(() => import('./views/forms/Customers/Customers'))
+const Bills = React.lazy(() => import('./views/forms/Bills/Bills'))
+const CreateBill = React.lazy(() => import('./views/forms/CreateBill/CreateBill'))
+const BillView = React.lazy(() => import('./views/forms/BillView/BillView'))
 
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
@@ -89,28 +99,45 @@ const routes = [
   { path: '/projects', name: 'Project Management', element: Buttons, exact: true },
 
   { path: '/project/tasks', name: 'Project Tasks', element: Buttons },
-  { path: '/project/reports', name: 'Project Reports', element: Dropdowns },
+  { path: '/project/reports', name: 'Project Reports', element: Reports },
   { path: '/projects/view/:id', name: 'View Project BOQ', element: BoqView },
   { path: '/projects/edit/:id', name: 'Edit Project', element: EditProject },
   { path: '/project/lists', name: 'Project Lists', element: ProjectList },
   { path: '/charts', name: 'Charts', element: Charts },
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
-  { path: '/forms/select', name: 'Select', element: Select },
+  { path: '/forms/InvoiceView', name: 'InvoiceView', element: InvoiceView },
+
+  {
+    path: '/invoices',
+    name: 'Invoices',
+    element: Invoice, // This is your Invoices List page
+  },
+  {
+    path: '/invoices/create',
+    name: 'Create Invoice',
+    element: CreateInvoice,
+  },
+  {
+    path: '/invoices/:id',
+    name: 'View Invoice',
+    element: InvoiceView,
+  },
   { path: '/forms/approvals/list', name: 'ApprovalList', element: ApprovalList },
   { path: '/forms/approvals', name: 'Approvals', element: Approvals },
   { path: '/forms/input-group', name: 'Input Group', element: InputGroup },
   { path: '/forms/floating-labels', name: 'Floating Labels', element: FloatingLabels },
-  { path: '/forms/layout', name: 'Layout', element: Layout },
-  { path: '/forms/validation', name: 'Validation', element: Validation },
+  { path: '/forms/invoice', name: 'Invoice', element: Invoice },
+  { path: '/forms/CreateInvoice', name: 'CreateInvoice', element: CreateInvoice },
   { path: '/icons', exact: true, name: 'Icons', element: CoreUIIcons },
   { path: '/icons/coreui-icons', name: 'CoreUI Icons', element: CoreUIIcons },
   { path: '/icons/flags', name: 'Flags', element: Flags },
   { path: '/icons/brands', name: 'Brands', element: Brands },
   { path: '/notifications', name: 'Notifications', element: NotificationList, exact: true },
   { path: '/notifications/list', name: 'Notification List', element: NotificationList },
-  { path: '/notifications/badges', name: 'Badges', element: Badges },
-  { path: '/notifications/modals', name: 'Modals', element: Modals },
+  { path: '/forms/Customers', name: 'Customers', element: Customers },
+  { path: '/forms/bills', name: 'Bills', element: Bills },
+  { path: '/forms/contacts', name: 'Contacts', element: Contacts },
   {
     path: '/projects/view/:id/boq',
     name: 'View Project BOQ',
@@ -121,13 +148,26 @@ const routes = [
     name: 'BOQ Item Details',
     element: BoqItemDetails,
   },
+
   {
     path: '/projects/edit/:id',
     name: 'Edit Project',
     element: EditProject,
   },
 
-  { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
+  // { path: '/forms/CreateBill', name: 'CreateBill', element: CreateBill },
+  // { path: '/forms/BillView', name: 'BillView', element: BillView },
+  { path: '/bills', name: 'Bills List', element: Bills },
+  { path: '/bills/create', name: 'Create Bill', element: CreateBill },
+  { path: '/bills/:id', name: 'View Bill', element: BillView },
+  { path: '/contacts', name: 'Contacts', element: Contacts },
+  { path: '/contacts/create', name: 'Create Contact', element: CreateContact },
+  { path: '/contacts/:id', name: 'View Contact', element: ContactView },
+  { path: '/contacts/:id/edit', name: 'Edit Contact', element: CreateContact },
+  { path: '/payments', name: 'Payments', element: Payments },
+  { path: '/payments/create', name: 'Record Payment', element: CreatePayment },
+  { path: '/payments/:id', name: 'View Payment', element: PaymentView },
+
   { path: '/widgets', name: 'Widgets', element: Widgets },
 ]
 

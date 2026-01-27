@@ -340,8 +340,8 @@ const _nav = [
       // },
       {
         component: CNavItem,
-        name: 'Select',
-        to: '/forms/select',
+        name: 'InvoiceView',
+        to: '/forms/InvoiceView',
       },
       // {
       //   component: CNavItem,
@@ -373,14 +373,10 @@ const _nav = [
       // },
       {
         component: CNavItem,
-        name: 'Layout',
-        to: '/forms/layout',
+        name: 'Invoice',
+        to: '/forms/invoice',
       },
-      {
-        component: CNavItem,
-        name: 'Validation',
-        to: '/forms/validation',
-      },
+      
     ],
   },
   {
@@ -413,29 +409,55 @@ const _nav = [
   // },
   {
     component: CNavGroup,
-    name: 'Notifications',
+    name: 'Accounts',
     icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
     items: [
+      // {
+      //   component: CNavItem,
+      //   name: 'Notifications List',
+      //   to: '/notifications/list',
+      // },
       {
         component: CNavItem,
-        name: 'Notifications List',
-        to: '/notifications/list',
+        name: 'Customers',
+        to: '/forms/Customers',
+      },
+      {
+        component: CNavItem,
+        name: 'Contacts',
+        to: '/forms/Contacts',
+      },
+      {
+        component: CNavItem,
+        name: 'Payments',
+        to: '/payments',
+      },
+      {
+        component: CNavItem,
+        name: 'View Payment',
+        to: '/payments/:id',
+      },
+      {
+        component: CNavItem,
+        name: 'Record Payment',
+        to: '/payments/create',
+      },
+     
+      {
+        component: CNavItem,
+        name: 'Bills List',
+        to: '/bills',
       },
       // {
       //   component: CNavItem,
-      //   name: 'Badges',
-      //   to: '/notifications/badges',
+      //   name: 'CreateBill',
+      //   to: '/bills/create',
       // },
-      // {
-      //   component: CNavItem,
-      //   name: 'Modal',
-      //   to: '/notifications/modals',
-      // },
-      // {
-      //   component: CNavItem,
-      //   name: 'Toasts',
-      //   to: '/notifications/toasts',
-      // },
+      {
+        component: CNavItem,
+        name: 'BillView',
+        to: '/bills/:id',
+      },
     ],
   },
 
