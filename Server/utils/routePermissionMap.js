@@ -7,9 +7,16 @@ module.exports = () => {
 
   fs.readdirSync(routesDir).forEach((file) => {
     const router = require(`../routes/${file}`);
+
+    if (!router || !router.stack) {
+      console.warn(`⚠️ Skipping non-router file: ${file}`);
+      return;
+    }
+
     router.stack.forEach((layer) => {
       if (layer.route) {
         const methods = Object.keys(layer.route.methods);
+
         methods.forEach((method) => {
           map.push({
             method: method.toUpperCase(),

@@ -44,7 +44,7 @@ import {
 import api from '../../../api/axios'
 import { useAuth } from '../../../context/AuthContext'
 
-const Range = () => {
+const Approvals = () => {
   const { user } = useAuth()
   const isSuperAdmin =
     user?.role?.name?.toUpperCase() === 'SUPER_ADMIN' ||
@@ -688,4 +688,4 @@ const Range = () => {
   )
 }
 
-export default Range
+export default Approvals

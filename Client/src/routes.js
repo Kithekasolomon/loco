@@ -43,7 +43,7 @@ const FloatingLabels = React.lazy(() => import('./views/forms/floating-labels/Fl
 const FormControl = React.lazy(() => import('./views/forms/form-control/FormControl'))
 const InputGroup = React.lazy(() => import('./views/forms/input-group/InputGroup'))
 const Layout = React.lazy(() => import('./views/forms/layout/Layout'))
-const Range = React.lazy(() => import('./views/forms/range/Range'))
+const Approvals = React.lazy(() => import('./views/pages/Approvals/Approvals'))
 const Select = React.lazy(() => import('./views/forms/select/Select'))
 const Validation = React.lazy(() => import('./views/forms/validation/Validation'))
 
@@ -98,7 +98,7 @@ const routes = [
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
   { path: '/forms/select', name: 'Select', element: Select },
   { path: '/forms/approvals/list', name: 'ApprovalList', element: ApprovalList },
-  { path: '/forms/range', name: 'Range', element: Range },
+  { path: '/forms/approvals', name: 'Approvals', element: Approvals },
   { path: '/forms/input-group', name: 'Input Group', element: InputGroup },
   { path: '/forms/floating-labels', name: 'Floating Labels', element: FloatingLabels },
   { path: '/forms/layout', name: 'Layout', element: Layout },
