@@ -1,38 +1,42 @@
-import React, { Suspense, useEffect } from 'react'
-import { HashRouter, Route, Routes } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import React, { Suspense, useEffect } from 'react';
+import { HashRouter, Route, Routes } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
-import { CSpinner, useColorModes } from '@coreui/react'
-import './scss/style.scss'
-import './scss/examples.scss'
+import { CSpinner, useColorModes } from '@coreui/react';
+import './scss/style.scss';
+import './scss/examples.scss';
 
 // Containers
-const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
+const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'));
 
 // Pages
-const Login = React.lazy(() => import('./views/pages/login/Login'))
-const Register = React.lazy(() => import('./views/pages/register/Register'))
-const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
-const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
-const Otp = React.lazy(() => import('./views/pages/login/Otp')) // ✅ ADD
+const Login = React.lazy(() => import('./views/pages/login/Login'));
+const Register = React.lazy(() => import('./views/pages/register/Register'));
+const Page404 = React.lazy(() => import('./views/pages/page404/Page404'));
+const Page500 = React.lazy(() => import('./views/pages/page500/Page500'));
+const Otp = React.lazy(() => import('./views/pages/login/Otp'));
 
 // Guards
-import ProtectedRoute from './routes/ProtectedRoute'
+import ProtectedRoute from './routes/ProtectedRoute';
 
 // Auth Context
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider } from './context/AuthContext';
 
 const App = () => {
-  const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
-  const storedTheme = useSelector((state) => state.theme)
+  const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme');
+  const storedTheme = useSelector((state) => state.theme);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.href.split('?')[1])
-    const theme = urlParams.get('theme') && urlParams.get('theme').match(/^[A-Za-z0-9\s]+/)[0]
+    const urlParams = new URLSearchParams(window.location.search);
+    const theme = urlParams.get('theme')?.match(/^[A-Za-z0-9\s]+/)?.[0];
 
-    if (theme) setColorMode(theme)
-    if (!isColorModeSet()) setColorMode(storedTheme)
-  }, [])
+    if (theme) {
+      setColorMode(theme);
+    }
+    if (!isColorModeSet()) {
+      setColorMode(storedTheme);
+    }
+  }, [isColorModeSet, setColorMode, storedTheme]);
 
   return (
     <AuthProvider>
@@ -45,14 +49,14 @@ const App = () => {
           }
         >
           <Routes>
-            {/* PUBLIC ROUTES */}
-            <Route exact path="/login" element={<Login />} />
-            <Route exact path="/otp" element={<Otp />} />
-            <Route exact path="/register" element={<Register />} />
-            <Route exact path="/404" element={<Page404 />} />
-            <Route exact path="/500" element={<Page500 />} />
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/otp" element={<Otp />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/404" element={<Page404 />} />
+            <Route path="/500" element={<Page500 />} />
 
-            {/* PROTECTED */}
+            {/* All other routes are protected and use DefaultLayout */}
             <Route
               path="*"
               element={
@@ -65,7 +69,7 @@ const App = () => {
         </Suspense>
       </HashRouter>
     </AuthProvider>
-  )
-}
+  );
+};
 
-export default App
+export default App;

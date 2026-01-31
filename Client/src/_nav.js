@@ -201,6 +201,36 @@ const _nav = [
      
     ],
   },
+  // Add this new CNavGroup somewhere logical, e.g. inside Project Management or as new top-level
+
+  {
+    component: CNavGroup,
+    name: 'Site Reports',
+    to: '/site-reports',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />, 
+    items: [
+      {
+        component: CNavItem,
+        name: 'Daily Reports',
+        to: '/projects/:projectId/daily-reports',
+      },
+      {
+        component: CNavItem,
+        name: 'Create Daily Report',
+        to: '/projects/:projectId/daily-reports/create',
+      },
+      {
+        component: CNavItem,
+        name: 'My Daily Reports',
+        to: '/site-reports/my',
+      },
+      {
+        component: CNavItem,
+        name: 'Weekly Summary',
+        to: '/site-reports/weekly',
+      },
+    ],
+  },
   {
     component: CNavGroup,
     name: 'Approvals ',
@@ -248,11 +278,11 @@ const _nav = [
       //     text: 'PRO',
       //   },
       // },
-      // {
-      //   component: CNavItem,
-      //   name: 'Floating Labels',
-      //   to: '/forms/floating-labels',
-      // },
+      {
+        component: CNavItem,
+        name: 'Floating Labels',
+        to: '/forms/floating-labels',
+      },
       // {
       //   component: CNavItem,
       //   name: 'Form Control',

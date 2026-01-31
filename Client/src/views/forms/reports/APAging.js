@@ -27,9 +27,8 @@ const APAging = () => {
 
     const fetchAPAging = async () => {
         try {
-            // Reuse A/R logic but for bills - adjust endpoint when backend supports
-            // For now, we'll simulate similar structure
-            const res = await api.get('/api/bills') // Replace with actual A/P aging endpoint when ready
+
+            const res = await api.get('/api/bills')
             const bills = res.data.filter(b => ['DRAFT', 'UNPAID', 'PARTIALLY_PAID', 'OVERDUE'].includes(b.status))
 
             const formatted = bills.map(bill => {
@@ -47,7 +46,7 @@ const APAging = () => {
                     dueDate: bill.dueDate,
                     daysOverdue,
                     bucket,
-                    outstanding: bill.total, // Enhance with payments applied later
+                    outstanding: bill.total,
                 }
             })
 
@@ -80,8 +79,11 @@ const APAging = () => {
                 </CCardHeader>
                 <CCardBody>
                     <CTable hover responsive bordered>
+
                         <CTableHead color="light">
                             <CTableRow>
+                                <CTableHeaderCell>Vendor</CTableHeaderCell>
+
                                 <CTableHeaderCell>Vendor</CTableHeaderCell>
                                 <CTableHeaderCell>Bill #</CTableHeaderCell>
                                 <CTableHeaderCell>Bill Date</CTableHeaderCell>

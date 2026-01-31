@@ -26,12 +26,14 @@
     "@coreui/react": "^5.9.2",
     "@coreui/react-chartjs": "^3.0.0",
     "@coreui/utils": "^2.0.2",
+    "@hookform/resolvers": "^5.2.2",
     "@popperjs/core": "^2.11.8",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
     "classnames": "^2.5.1",
     "core-js": "^3.47.0",
+    "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",
@@ -40,6 +42,8 @@
     "prop-types": "^15.8.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-hook-form": "^7.71.1",
+    "react-hot-toast": "^2.6.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.11.0",
     "react-select": "^5.10.2",
@@ -47,7 +51,8 @@
     "simplebar-react": "^3.3.2",
     "socket.io-client": "^4.8.3",
     "three": "^0.182.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "yup": "^1.7.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.2",

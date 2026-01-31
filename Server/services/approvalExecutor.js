@@ -68,7 +68,7 @@ module.exports.execute = async (approval) => {
         payment.transaction = transaction._id;
         await payment.save();
 
-        
+
       }
 
       await AuditLog.create({
@@ -80,6 +80,72 @@ module.exports.execute = async (approval) => {
 
       return payment;
     }
+
+
+
+    case "SUBMIT_DAILY_REPORT": {
+      const report = await DailySiteReport.findById(payload.reportId);
+      if (!report) throw new Error("Report not found");
+
+      report.status = "SUBMITTED";
+      await report.save();
+
+      return report;
+    }
+      case "REVIEW_DAILY_REPORT": {
+        const report = await DailySiteReport.findById(payload.reportId);
+        if (!report) throw new Error("Report not found");
+
+        report.status = "REVIEWED";
+        await report.save();
+
+        return report;
+    }
+      
+    case "SUBMIT_DAILY_REPORT": {
+      const { reportId } = payload;
+
+      if (!reportId) {
+        throw new Error("Missing reportId in payload");
+      }
+
+      const report = await DailySiteReport.findById(reportId);
+
+      if (!report) {
+        throw new Error("Daily site report not found");
+      }
+
+      if (report.status !== "DRAFT" && report.status !== "SUBMITTED") {
+        throw new Error(`Cannot process report in status: ${report.status}`);
+      }
+
+      // Optional: enforce final checks before marking as submitted
+      // e.g. require at least some work description or photos
+      if (!report.workDone?.trim()) {
+        throw new Error("Work done description is required");
+      }
+
+      // Finalize submission
+      report.status = "SUBMITTED";
+      report.updatedAt = new Date(); // just in case
+
+      await report.save();
+
+      // Optional: create audit log entry for submission
+      await AuditLog.create({
+        action: "DAILY_REPORT_SUBMITTED",
+        performedBy: approval.requestedBy,
+        targetId: report._id,
+        metadata: {
+          projectId: report.project?.toString(),
+          reportDate: report.reportDate,
+        },
+        status: "SUCCESS",
+      });
+
+      return report;
+    }
+
 
 
 

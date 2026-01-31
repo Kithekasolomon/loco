@@ -20,6 +20,10 @@ const Contacts = React.lazy(() => import('./views/forms/Contacts/Contacts'))
 const CreateContact = React.lazy(() => import('./views/forms/Contacts/CreateContact'))
 const ContactView = React.lazy(() => import('./views/forms/Contacts/ContactView'))
 
+const DailyReportsList = React.lazy(() => import('./views/forms/DailyReports/DailyReportsList'))
+const DailyReportForm = React.lazy(() => import('./views/forms/DailyReports/DailyReportForm'))
+// const DailyReportView = React.lazy(() => import('./views/forms/DailyReports/DailyReportView'))
+
 // Base
 const UserList = React.lazy(() => import('./views/pages/userManagement/UserList/UserList'))
 const UserRoles = React.lazy(() => import('./views/pages/userManagement/UserRoles/UserRoles'))
@@ -85,7 +89,6 @@ const routes = [
   { path: '/theme/typography', name: 'Typography', element: Typography },
   { path: '/user', name: 'User Management', element: Users, exact: true },
 
-  //user management
   { path: '/base/list', name: 'Users List', element: UserList },
   { path: '/user/roles', name: 'User Roles', element: UserRoles },
   { path: '/base/users', name: 'Users', element: Users },
@@ -104,7 +107,7 @@ const routes = [
   { path: '/projects', name: 'Project Management', element: Buttons, exact: true },
 
   { path: '/project/tasks', name: 'Project Tasks', element: Buttons },
- 
+
   { path: '/projects/view/:id', name: 'View Project BOQ', element: BoqView },
   { path: '/projects/edit/:id', name: 'Edit Project', element: EditProject },
   { path: '/project/lists', name: 'Project Lists', element: ProjectList },
@@ -116,7 +119,7 @@ const routes = [
   {
     path: '/invoices',
     name: 'Invoices',
-    element: Invoice, // This is your Invoices List page
+    element: Invoice,
   },
   {
     path: '/invoices/create',
@@ -180,6 +183,10 @@ const routes = [
   { path: '/reports/ap-aging', name: 'A/P Aging', element: APAging },
 
   { path: '/widgets', name: 'Widgets', element: Widgets },
+  { path: '/projects/:projectId/daily-reports', name: 'Daily Reports List', element: DailyReportsList },
+  { path: '/projects/:projectId/daily-reports/create', name: 'Create Daily Report', element: DailyReportForm },
+  { path: '/projects/:projectId/daily-reports/:reportId', name: 'Edit Daily Report', element: DailyReportForm },
+
 ]
 
 export default routes

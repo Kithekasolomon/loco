@@ -56,6 +56,7 @@ app.use("/api/invoices", require("./routes/invoiceRoutes"));
 app.use("/api/bills", require("./routes/billRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
+app.use("/api/daily-reports", require("./routes/dailyReportRoutes"));
 
 
 const server = http.createServer(app);
@@ -68,3 +69,4 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`🔌 Socket.IO ready at http://localhost:${PORT}`);
 });
 
+//once  the project has been selected ,,they will now be able to  see the bqs of that project and they can select the BQs they want to update,,they select ,,they wiill be able to see the details ,,they will have an option of selecting multiple BQs and updating them at once,,they will be able to upload photos of proof of work,, pending works and completed works and challenges,,i will add a new page for that 

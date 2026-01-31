@@ -4,7 +4,7 @@ const role = require("../middleware/roleMiddleware");
 const audit = require("../middleware/auditMiddleware");
 
 const {
-  requestCreateUser, // New: Replaces createUser
+  requestCreateUser, 
   requestEditUser,
   requestDeactivateUser,
   requestRestoreUser,

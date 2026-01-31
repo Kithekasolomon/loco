@@ -27,6 +27,8 @@ const approvalSchema = new mongoose.Schema(
         "EDIT_BILL",
         "DELETE_BILL",
         "CREATE_PAYMENT",
+        "SUBMIT_DAILY_REPORT",
+        "REVIEW_DAILY_REPORT",
         
       ],
       required: true,
