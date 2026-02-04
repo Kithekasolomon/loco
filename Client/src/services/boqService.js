@@ -32,3 +32,26 @@ export const getBoqItemsForCategory = async (projectId, categoryName) => {
     return []
   }
 }
+export const getBoqItemsByProject = async (projectId) => {
+  try {
+    const { data } = await api.get(`/api/projects/${projectId}`);  
+    const allItems = data.boq?.categories?.flatMap(cat => cat.items || []) || [];
+
+    return allItems;
+  } catch (err) {
+    console.error("BOQ fetch error:", err?.response?.data || err);
+    toast.error("Could not load BOQ items for this project");
+    return [];
+  }
+};
+
+export const getBoqItemDetails = async (itemId) => {
+  try {
+    const { data } = await api.get(`/api/boq/${itemId}`);
+    return data;
+  } catch (err) {
+    console.error("Failed to load BOQ item:", err);
+    return null;
+  }
+};
+

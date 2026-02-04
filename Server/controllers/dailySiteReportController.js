@@ -101,27 +101,54 @@ exports.uploadPhotos = async (req, res) => {
 exports.createDraft = async (req, res) => {
     try {
         const { projectId } = req.params;
-
         const project = await Project.findById(projectId);
         if (!project) {
             return res.status(404).json({ success: false, message: 'Project not found' });
         }
 
+        // Access control
+        const userId = req.user._id.toString();
+        const isSuperAdmin = req.user.role?.name === "SUPER_ADMIN";
+        const isLead = project.projectLead?.toString() === userId;
+        const isTeamMember = project.team?.some(t => t.toString() === userId);
+
+        if (!isSuperAdmin && !isLead && !isTeamMember) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to create reports for this project'
+            });
+        }
+
+        // Optional: pre-fill from last approved report
+        let prefill = {};
+        if (!req.body.workDone || !req.body.pendingWork) {
+            const lastReport = await DailySiteReport.findOne({
+                project: projectId,
+                status: "APPROVED"
+            })
+                .sort({ reportDate: -1 })
+                .lean();
+
+            if (lastReport) {
+                prefill.pendingWork = lastReport.pendingWork || '';
+                prefill.workDone = req.body.workDone || lastReport.pendingWork || '';
+            }
+        }
+
         const report = new DailySiteReport({
             project: projectId,
             reportDate: req.body.reportDate ? new Date(req.body.reportDate) : new Date(),
-            submittedBy: req.user.id,
+            submittedBy: req.user._id,
             status: 'DRAFT',
-
-            workDone: req.body.workDone || '',
-            pendingWork: req.body.pendingWork || '',
+            workDone: req.body.workDone || prefill.workDone || '',
+            pendingWork: req.body.pendingWork || prefill.pendingWork || '',
             challengesFaced: req.body.challengesFaced || '',
             weatherConditions: req.body.weatherConditions || '',
-
             personnel: req.body.personnel || [],
             boqProgressUpdates: req.body.boqProgressUpdates || [],
             dailyExpenses: req.body.dailyExpenses || [],
-            sitePhotos: [], 
+            sitePhotos: [],
+            // You can add materialsUsed, equipment, safetyIncidents here later
         });
 
         await report.save();
@@ -300,10 +327,20 @@ exports.reviewReport = async (req, res) => {
 exports.getProjectReports = async (req, res) => {
     try {
         const { projectId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(projectId)) {
+            return res.status(400).json({ success: false, message: 'Invalid project ID' });
+        }
+        console.log(projectId);
+
+        const projectExists = await Project.exists({ _id: projectId });
+        if (!projectExists) {
+            return res.status(404).json({ success: false, message: 'Project not found' });
+        }
+
         const { status, startDate, endDate, page = 1, limit = 20 } = req.query;
 
         const query = { project: new ObjectId(projectId) };
-
         if (status) query.status = status;
         if (startDate || endDate) {
             query.reportDate = {};
@@ -334,7 +371,12 @@ exports.getProjectReports = async (req, res) => {
             },
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch reports' });
+        console.error('getProjectReports error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch reports',
+            error: error.message
+        });
     }
 };
 

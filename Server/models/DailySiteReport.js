@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const dailySiteReportSchema = new Schema({
+    materialsUsed: [{
+        description: { type: String, required: true },
+        quantity: { type: Number, min: 0 },
+        unit: String,
+        supplier: String,
+        cost: { type: Number, min: 0 },
+    }],
     project: {
         type: Schema.Types.ObjectId,
         ref: "Project",

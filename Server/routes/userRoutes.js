@@ -4,10 +4,11 @@ const role = require("../middleware/roleMiddleware");
 const audit = require("../middleware/auditMiddleware");
 
 const {
-  requestCreateUser, 
+  requestCreateUser,
   requestEditUser,
   requestDeactivateUser,
   requestRestoreUser,
+  getOrganizationUsers,
 } = require("../controllers/userController");
 const User = require("../models/User");
 
@@ -27,6 +28,7 @@ router.put(
   requestEditUser,
 );
 
+
 router.put(
   "/deactivate/:id",
   auth,
@@ -41,6 +43,13 @@ router.put(
   audit("RESTORE_USER_REQUEST"),
   requestRestoreUser,
 );
+router.get(
+  "/organization",
+  auth,
+  role(["SITE_EMPLOYEE", "ADMIN", "SUPER_ADMIN"]),
+  getOrganizationUsers
+);
+
 router.get("/", auth, role(["ADMIN", "SUPER_ADMIN"]), async (req, res) => {
   try {
     const users = await User.find().populate("role", "name").lean();

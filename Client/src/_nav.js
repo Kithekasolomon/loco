@@ -201,7 +201,7 @@ const _nav = [
      
     ],
   },
-  // Add this new CNavGroup somewhere logical, e.g. inside Project Management or as new top-level
+  
 
   {
     component: CNavGroup,

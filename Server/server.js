@@ -21,17 +21,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
-// app.use(
-//   cors({
-//     origin: [
-//       "http://localhost:3000",
-//       "http:// 192.168.3.37:3000", 
-//     ],
-//     credentials: true,
-//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//   }),
-// );
+
 
 
 app.use(express.json());
@@ -69,4 +59,4 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`🔌 Socket.IO ready at http://localhost:${PORT}`);
 });
 
-//once  the project has been selected ,,they will now be able to  see the bqs of that project and they can select the BQs they want to update,,they select ,,they wiill be able to see the details ,,they will have an option of selecting multiple BQs and updating them at once,,they will be able to upload photos of proof of work,, pending works and completed works and challenges,,i will add a new page for that 
+ 

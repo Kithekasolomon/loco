@@ -16,7 +16,6 @@ exports.requestCreateUser = async (req, res) => {
   try {
     const { firstName, lastName, email, phone, username, role } = req.body;
 
-    // No password generation here – do it on approval
     const payload = {
       firstName,
       lastName,
@@ -34,6 +33,16 @@ exports.requestCreateUser = async (req, res) => {
       message: "Failed to request user creation",
       error: error.message,
     });
+  }
+};
+exports.getOrganizationUsers = async (req, res) => {
+  try {
+    const users = await User.find({ organization: req.user.organization })
+      .select("firstName lastName username _id")
+      .sort({ firstName: 1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch users" });
   }
 };
 

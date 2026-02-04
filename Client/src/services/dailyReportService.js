@@ -1,4 +1,3 @@
-// src/services/dailyReportService.js
 import api from '../api/axios';
 
 const BASE = '/api/daily-reports';
@@ -49,10 +48,17 @@ export const reviewDailyReport = async (reportId, { status, adminComment }) => {
 // 5. Get all reports for project (with filters)
 export const getProjectDailyReports = async (projectId, params = {}) => {
     try {
-        const { data } = await api.get(`${BASE}/projects/${projectId}/daily-reports`, { params });
+        console.log(`Fetching reports for project: ${projectId}`, params);
+        const { data } = await api.get(`/api/daily-reports/projects/${projectId}/daily-reports`, { params });
+        console.log("Reports response:", data);
         return data;
     } catch (err) {
-        throw err.response?.data?.message || 'Failed to fetch reports';
+        console.error("getProjectDailyReports failed:", {
+            status: err.response?.status,
+            data: err.response?.data,
+            message: err.message,
+        });
+        throw err.response?.data?.message || err.message || 'Failed to fetch reports';
     }
 };
 
