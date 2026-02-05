@@ -2,6 +2,14 @@ import React from 'react'
 import ProjectList from './views/pages/projectManagement/ProjectList/ProjectList'
 const Payments = React.lazy(() => import('./views/forms/Payments/Payments'))
 const CreatePayment = React.lazy(() => import('./views/forms/Payments/CreatePayment'))
+
+
+const ServicesList = React.lazy(() => import('./views/service/ServicesList'));
+const ServiceRequestsList = React.lazy(() => import('./views/service/ServiceRequestsList'));
+const ServiceRequestCreate = React.lazy(() => import('./views/service/ServiceRequestCreate'));
+const ServiceRequestDetail = React.lazy(() => import('./views/service/ServiceRequestDetail'));
+const AdminRequestsList = React.lazy(() => import('./views/service/AdminRequestsList'));
+
 const PaymentView = React.lazy(() => import('./views/forms/Payments/PaymentView'))
 const ProfitLoss = React.lazy(() => import('./views/forms/reports/ProfitLoss'))
 const Reports = React.lazy(() => import('./views/forms/reports/Reports'))
@@ -115,6 +123,30 @@ const routes = [
   { path: '/forms', name: 'Forms', element: FormControl, exact: true },
   { path: '/forms/form-control', name: 'Form Control', element: FormControl },
   { path: '/forms/InvoiceView', name: 'InvoiceView', element: InvoiceView },
+  { path: '/admin/requests', name: 'Admin Requests', element: AdminRequestsList },
+
+
+  {
+    path: '/services',
+    name: 'Available Services',
+    element: ServicesList,
+  },
+  {
+    path: '/requests',
+    name: 'My Service Requests',
+    element: ServiceRequestsList,
+  },
+  {
+    path: '/requests/create',
+    name: 'Create Service Request',
+    element: ServiceRequestCreate,
+  },
+  {
+    path: '/requests/:id',
+    name: 'Service Request Detail',
+    element: ServiceRequestDetail,
+  },
+  
 
   {
     path: '/invoices',

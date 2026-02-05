@@ -29,6 +29,9 @@ const approvalSchema = new mongoose.Schema(
         "CREATE_PAYMENT",
         "SUBMIT_DAILY_REPORT",
         "REVIEW_DAILY_REPORT",
+        "ASSIGN_TECHNICIAN",
+        "MARK_READY_FOR_COMPLETION",  
+        "CONFIRM_COMPLETION",
         
       ],
       required: true,
@@ -50,6 +53,11 @@ const approvalSchema = new mongoose.Schema(
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    targetRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceRequest",
+      index: true,
     },
     reviewedAt: Date,
   },

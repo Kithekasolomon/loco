@@ -8,13 +8,15 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+
 const storage = new CloudinaryStorage({
     cloudinary,
     params: (req, file) => {
+        const orgId = req.user?.organization?._id?.toString() || 'default';
         return {
-            folder: `construction-reports/${req.user.organization || 'default'}`,
+            folder: `construction-reports/${orgId}`,
             allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
-            public_id: `${Date.now()}-${file.originalname.split('.')[0]}`,
+            public_id: `${Date.now()}-${file.originalname.split('.')[0].replace(/\s+/g, '-')}`,
         };
     },
 });

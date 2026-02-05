@@ -1,38 +1,64 @@
+// middleware/roleMiddleware.js
 const User = require("../models/User");
 
-module.exports = (allowedRoles) => async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id).populate("role");
+module.exports = (allowedRoles) => {
+  // Optional: normalize allowedRoles to uppercase for case-insensitive comparison
+  const normalizedAllowed = allowedRoles.map(r => r.toUpperCase());
 
-    if (!user) {
-      return res.status(403).json({ msg: "User not found - Access denied" });
-    }
+  return async (req, res, next) => {
+    try {
+      // Fetch user with populated role (lean() is faster if you don't need full mongoose doc)
+      const user = await User.findById(req.user.id)
+        .populate("role", "name")   // only fetch name field — smaller payload
+        .lean();                    // faster, plain JS object
 
-    console.log("DEBUG ROLE CHECK ────────────────");
-    console.log("User ID:       ", req.user.id);
-    console.log("Raw role ID:   ", user.role); // should be ObjectId or null
-    console.log("Populated role:", user.role ? user.role.toObject() : null);
-    console.log("Role name:     ", user.role?.name);
-    console.log("Allowed roles: ", allowedRoles);
-    console.log(
-      "Has access?    ",
-      user.role?.name && allowedRoles.includes(user.role.name),
-    );
+      if (!user) {
+        return res.status(403).json({
+          message: "User not found - Access denied",
+          code: "USER_NOT_FOUND"
+        });
+      }
 
-    const userRoleName = user.role?.name;
+      const roleName = user.role?.name;
 
-    if (!userRoleName || !allowedRoles.includes(userRoleName)) {
-      return res.status(403).json({
-        msg: "Access denied - Insufficient role",
-        yourRole: userRoleName || "NO_ROLE",
-        required: allowedRoles,
+      // Debug logging (keep in dev, remove/comment in production or use logger)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("───────────── ROLE CHECK ──────────────");
+        console.log("User ID:      ", req.user.id);
+        console.log("Role name:    ", roleName || "NO_ROLE");
+        console.log("Allowed:      ", allowedRoles);
+        console.log("Has access?   ", roleName && normalizedAllowed.includes(roleName.toUpperCase()));
+      }
+
+      if (!roleName) {
+        return res.status(403).json({
+          message: "Access denied - No role assigned",
+          yourRole: "NO_ROLE",
+          required: allowedRoles,
+          code: "MISSING_ROLE"
+        });
+      }
+
+      if (!normalizedAllowed.includes(roleName.toUpperCase())) {
+        return res.status(403).json({
+          message: "Access denied - Insufficient permissions",
+          yourRole: roleName,
+          required: allowedRoles,
+          code: "INSUFFICIENT_ROLE"
+        });
+      }
+
+      // Attach for convenience in controllers
+      req.user.roleName = roleName;
+      req.user.hasRole = (role) => roleName.toUpperCase() === role.toUpperCase();
+
+      next();
+    } catch (error) {
+      console.error("Role middleware error:", error);
+      return res.status(500).json({
+        message: "Server error during permission check",
+        code: "ROLE_CHECK_ERROR"
       });
     }
-
-    req.user.roleName = userRoleName;
-    next();
-  } catch (error) {
-    console.error("Role middleware error:", error);
-    return res.status(500).json({ msg: "Server error in role check" });
-  }
+  };
 };

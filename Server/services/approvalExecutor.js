@@ -31,6 +31,87 @@ module.exports.execute = async (approval) => {
   switch (actionType) {
 
 
+    case "ASSIGN_TECHNICIAN": {
+      const { requestId, assignedTo } = payload;
+
+      const request = await ServiceRequest.findById(requestId);
+      if (!request) throw new Error("Service request not found");
+
+      request.assignedTo = assignedTo;
+      request.status = request.status === 'PENDING' ? 'CONFIRMED' : request.status;
+      request.updatedBy = approval.reviewedBy;
+      await request.save();
+
+      await AuditLog.create({
+        action: "TECHNICIAN_ASSIGNED",
+        performedBy: approval.reviewedBy,
+        targetId: request._id,
+        metadata: { assignedTo, requestId },
+        status: "SUCCESS",
+      });
+
+      return request;
+    }
+
+    case "MARK_READY_FOR_COMPLETION": {
+      const { requestId } = payload;
+
+      const request = await ServiceRequest.findById(requestId);
+      if (!request) throw new Error("Service request not found");
+
+      if (request.status !== 'IN_PROGRESS') {
+        throw new Error("Can only mark IN_PROGRESS requests as ready");
+      }
+
+      request.status = 'READY_FOR_COMPLETION';
+      request.updatedBy = approval.reviewedBy;
+      await request.save();
+
+      await AuditLog.create({
+        action: "REQUEST_READY_FOR_COMPLETION",
+        performedBy: approval.reviewedBy,
+        targetId: request._id,
+        status: "SUCCESS",
+      });
+
+      return request;
+    }
+
+    case "CONFIRM_COMPLETION": {
+      const { requestId, paymentProofImage, paymentMethod, transactionRef, note } = payload;
+
+      const request = await ServiceRequest.findById(requestId);
+      if (!request) throw new Error("Service request not found");
+
+      if (request.status !== 'READY_FOR_COMPLETION') {
+        throw new Error("Can only confirm READY_FOR_COMPLETION requests");
+      }
+
+      request.status = 'COMPLETED';
+      request.clientConfirmedPayment = true;
+      request.clientConfirmationNote = note;
+      request.completedByClient = approval.requestedBy; // client who requested approval
+      request.clientConfirmedAt = new Date();
+
+      if (paymentProofImage) request.paymentProofImage = paymentProofImage;
+      if (paymentMethod) request.paymentMethod = paymentMethod;
+      if (transactionRef) request.transactionRef = transactionRef;
+
+      request.updatedBy = approval.reviewedBy; // admin
+      await request.save();
+
+      await AuditLog.create({
+        action: "REQUEST_COMPLETED_APPROVED",
+        performedBy: approval.reviewedBy,
+        targetId: request._id,
+        status: "SUCCESS",
+      });
+
+      return request;
+    }
+
+
+
     case "CREATE_PAYMENT": {
       const payment = await Payment.create(payload);
 

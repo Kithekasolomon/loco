@@ -10,6 +10,14 @@ const seedSuperAdmin = require("./utils/seedSuperAdmin");
 const http = require("http");
 const { initSocket } = require("./socket/socket");
 
+require("./models/User");
+require("./models/Organization");          // ← must come early
+require("./models/Role");
+require("./models/Approval");
+require("./models/Otp");
+require("./models/Service");               // if you have it
+require("./models/ServiceRequest");
+
 const app = express();
 
 // 
@@ -47,6 +55,9 @@ app.use("/api/bills", require("./routes/billRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/daily-reports", require("./routes/dailyReportRoutes"));
+app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api', require('./routes/serviceRoutes'));
+app.use('/api', require('./routes/serviceRequestAdminRoutes'));
 
 
 const server = http.createServer(app);

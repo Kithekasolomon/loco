@@ -177,6 +177,34 @@ const _nav = [
       // },
     ],
   },
+
+  {
+    component: CNavGroup,
+    name: 'Service Requests',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />, 
+    items: [
+      {
+        component: CNavItem,
+        name: 'Available Services',
+        to: '/services',
+      },
+      {
+        component: CNavItem,
+        name: 'My Requests',
+        to: '/requests',
+      },
+      {
+        component: CNavItem,
+        name: 'Create Request',
+        to: '/requests/create',
+      },
+      {
+        component: CNavItem,
+        name: 'Admin Requests',
+        to: '/admin/requests',
+      },
+    ],
+  },
   {
     component: CNavGroup,
     name: 'Project Management',
