@@ -2,6 +2,7 @@ const ServiceRequest = require("../models/ServiceRequest");
 const User = require("../models/User");
 const Role = require("../models/Role");
 const sendEmail = require("../utils/sendEmail");
+const ServiceRequestUpdate = require("../models/ServiceRequestUpdate");
 
 exports.createServiceRequest = async (req, res) => {
     try {
@@ -97,41 +98,79 @@ exports.getMyRequests = async (req, res) => {
 exports.getTechnicianRequests = async (req, res) => {
     try {
         const requests = await ServiceRequest.find({ assignedTo: req.user._id })
-            .populate("client", "firstName lastName")
-            .sort({ createdAt: -1 });
+            .populate("client", "firstName lastName username email phone")
+            .populate("assignedTo", "firstName lastName username email")
+            .populate("history.by", "firstName lastName username")   // ← added
+            .sort({ createdAt: -1 })
+            .lean();
+
         res.json(requests);
     } catch (err) {
+        console.error("getTechnicianRequests error:", err);
         res.status(500).json({ msg: "Server error" });
     }
 };
 
 exports.updateRequest = async (req, res) => {
     try {
-        const { status, comment } = req.body;
-        const request = await ServiceRequest.findById(req.params.id).populate("client assignedTo");
+        const { status, comment, progressPercentage, isFinalUpdate = false, attachments = [] } = req.body;
+
+        const request = await ServiceRequest.findById(req.params.id)
+            .populate("client assignedTo");
+
         if (!request || request.assignedTo._id.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ msg: "Unauthorized" });
+            return res.status(403).json({ msg: "Unauthorized - only assigned technician can update" });
         }
 
+        // Create detailed update record
+        const updateRecord = await ServiceRequestUpdate.create({
+            request: request._id,
+            user: req.user._id,
+            message: comment?.trim() || "Status updated",
+            images: attachments.map(a => a.url), // only store URLs
+            statusAtUpdate: status,
+            progressPercentage: progressPercentage || request.progressPercentage || 0,
+            isFinalUpdate,
+        });
+
+        // Update main request
         if (status) request.status = status;
-        request.history.push({ status: request.status, by: req.user._id, comment });
+        if (progressPercentage !== undefined) request.progressPercentage = progressPercentage;
+
+        // Append to history (lightweight)
+        request.history.push({
+            status: request.status,
+            by: req.user._id,
+            comment: comment || `Progress: ${progressPercentage || 0}%`,
+            date: new Date(),
+        });
+
+        // If final update → mark request as ready or completed
+        if (isFinalUpdate && status === "IN_PROGRESS") {
+            request.status = "READY_FOR_COMPLETION";
+        }
+
         await request.save();
 
-        // Emails
-        const updateMsg = `Request ${request._id} updated to ${status}. Comment: ${comment || "N/A"}.`;
-        await sendEmail(request.client.email, "Request Update", updateMsg);
-        await sendEmail(request.assignedTo.email, "Request Update", updateMsg);
+        // Send emails
+        const updateMsg = `Request ${request._id} updated to ${status}. Progress: ${progressPercentage || 0}%. ${comment ? `Note: ${comment}` : ''}`;
+        await sendEmail(request.client.email, "Service Request Update", updateMsg);
+        await sendEmail(request.assignedTo.email, "Your Update Submitted", updateMsg);
 
         const superAdminRole = await Role.findOne({ name: "SUPER_ADMIN" });
         const superAdmins = await User.find({ role: superAdminRole._id, organization: req.user.organization }).select("email");
-        for (const email of superAdmins.map((u) => u.email)) {
-            await sendEmail(email, "Request Update", updateMsg);
+        for (const email of superAdmins.map(u => u.email)) {
+            await sendEmail(email, "Technician Update", updateMsg);
         }
 
-        res.json(request);
+        res.json({
+            success: true,
+            request,
+            update: updateRecord,
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ msg: "Server error" });
+        console.error("updateRequest error:", err);
+        res.status(500).json({ msg: "Server error", error: err.message });
     }
 };
 exports.getSingleRequest = async (req, res) => {

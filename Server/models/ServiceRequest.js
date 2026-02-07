@@ -29,6 +29,13 @@ const serviceRequestSchema = new mongoose.Schema(
             enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
             default: "PENDING",
         },
+        attachments: [{
+            url: String,
+            public_id: String,
+            type: { type: String, enum: ['before', 'after', 'other'] },
+            uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            uploadedAt: { type: Date, default: Date.now }
+        }],
         history: [
             {
                 status: String,

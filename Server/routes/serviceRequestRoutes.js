@@ -30,4 +30,17 @@ router.get(
 // Get single request detail (accessible by client, assigned technician, or admin/superadmin)
 router.get("/:id", auth, role(["CLIENT", "TECHNICIAN", "SUPER_ADMIN", "ADMIN"]), getSingleRequest);
 
+router.get("/:id/updates", auth, role(["TECHNICIAN", "CLIENT", "SUPER_ADMIN", "ADMIN"]), async (req, res) => {
+    try {
+        const updates = await ServiceRequestUpdate.find({ request: req.params.id })
+            .populate("user", "firstName lastName username")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        res.json(updates);
+    } catch (err) {
+        res.status(500).json({ msg: "Failed to load updates" });
+    }
+});
+
 module.exports = router;
