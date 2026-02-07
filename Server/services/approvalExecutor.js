@@ -10,6 +10,9 @@ const Payment = require("../models/Payment");
 const Project = require("../models/Project");
 const BoqItem = require("../models/BoqItem");
 const Contact = require("../models/Contact");
+const notification = require("../services/notification");
+const ServiceRequest = require("../models/ServiceRequest");
+const Account = require("../models/Account");
 
 
 module.exports.execute = async (approval) => {
@@ -29,6 +32,120 @@ module.exports.execute = async (approval) => {
   }
 
   switch (actionType) {
+
+
+    case "ASSIGN_TECHNICIAN": {
+      const { requestId, assignedTo } = payload;
+
+      const request = await ServiceRequest.findById(requestId);
+      if (!request) throw new Error("Service request not found");
+
+      // Optional: validate technician role if you have it
+      const tech = await User.findById(assignedTo);
+      if (!tech || !tech.isActive) throw new Error("Invalid or inactive technician");
+
+      request.assignedTo = assignedTo;
+      if (request.status === "PENDING") {
+        request.status = "CONFIRMED";
+      }
+      request.updatedBy = approval.reviewedBy;
+      await request.save();
+
+      await AuditLog.create({
+        action: "TECHNICIAN_ASSIGNED",
+        performedBy: approval.reviewedBy,
+        targetId: request._id,
+        metadata: { assignedTo, requestId },
+        status: "SUCCESS",
+      });
+
+      // Notify technician in real-time
+      notification.notifyUser(assignedTo, "assignment:new", {
+        requestId,
+        serviceType: request.serviceType,
+        location: request.location,
+        client: request.user?.toString(), 
+        message: "You have been assigned a new service request",
+      });
+
+      return request;
+    }
+
+    case "MARK_READY_FOR_COMPLETION": {
+      const { requestId } = payload;
+
+      const request = await ServiceRequest.findById(requestId);
+      if (!request) throw new Error("Service request not found");
+
+      if (request.status !== "IN_PROGRESS") {
+        throw new Error("Can only mark IN_PROGRESS requests as ready for completion");
+      }
+
+      request.status = "READY_FOR_COMPLETION";
+      request.updatedBy = approval.reviewedBy;
+      await request.save();
+
+      await AuditLog.create({
+        action: "REQUEST_MARKED_READY",
+        performedBy: approval.reviewedBy,
+        targetId: request._id,
+        status: "SUCCESS",
+      });
+
+      
+      notification.notifyUser(request.user.toString(), "request:ready", {
+        requestId,
+        message: "Technician has marked the job as ready for your review & confirmation",
+      });
+
+      return request;
+    }
+
+    case "CONFIRM_COMPLETION": {
+      const { requestId, paymentProofImage, paymentMethod, transactionRef, note } = payload;
+
+      const request = await ServiceRequest.findById(requestId);
+      if (!request) throw new Error("Service request not found");
+
+      if (request.status !== "READY_FOR_COMPLETION") {
+        throw new Error("Can only confirm READY_FOR_COMPLETION requests");
+      }
+
+      request.status = "COMPLETED";
+      request.clientConfirmedPayment = true;
+      request.clientConfirmationNote = note?.trim() || undefined;
+      request.completedByClient = approval.requestedBy; 
+      request.clientConfirmedAt = new Date();
+
+      if (paymentProofImage) request.paymentProofImage = paymentProofImage;
+      if (paymentMethod) request.paymentMethod = paymentMethod;
+      if (transactionRef) request.transactionRef = transactionRef;
+
+      request.updatedBy = approval.reviewedBy; 
+      await request.save();
+
+      await AuditLog.create({
+        action: "REQUEST_COMPLETED_APPROVED",
+        performedBy: approval.reviewedBy,
+        targetId: request._id,
+        metadata: { client: approval.requestedBy.toString() },
+        status: "SUCCESS",
+      });
+
+      if (request.assignedTo) {
+        notification.notifyUser(request.assignedTo.toString(), "completion:confirmed", {
+          requestId,
+          message: "Client confirmed completion and payment. Job is now closed.",
+        });
+      }
+
+      notification.notifyUser(approval.requestedBy.toString(), "completion:approved", {
+        requestId,
+        message: "Your completion confirmation was approved by admin.",
+      });
+
+      return request;
+    }
 
 
     case "ASSIGN_TECHNICIAN": {
@@ -438,25 +555,40 @@ module.exports.execute = async (approval) => {
       return { deleted: true };
     }
     case "CREATE_USER": {
+      const { email } = payload;
+
+      // Check if email already exists
+      const existing = await User.findOne({ email });
+      if (existing) {
+        throw new Error(`User with email ${email} already exists`);
+      }
+
       const tempPassword = Math.random().toString(36).slice(-8);
       const hashed = await bcrypt.hash(tempPassword, 10);
 
+      const orgId = payload.organization || approval.reviewedBy.organization;
+      if (!orgId) {
+        throw new Error("Cannot create user: organization is required");
+      }
+
       const newUser = await User.create({
         ...payload,
+        organization: orgId,
         password: hashed,
         isActive: true,
       });
 
+      // Email with temp password
       const loginLink = `${process.env.BASE_URL}/login`;
       await sendEmail(
         newUser.email,
         "Your Account Has Been Activated",
         `<p>Hello ${newUser.firstName},</p>
-         <p>Your account has been successfully activated.</p>
-         <p><strong>Username:</strong> ${newUser.username}</p>
-         <p><strong>Temporary Password:</strong> ${tempPassword}</p>
-         <p><a href="${loginLink}">Click here to login</a></p>
-         <p>Please change your password immediately after logging in.</p>`,
+     <p>Your account has been approved and activated.</p>
+     <p><strong>Username:</strong> ${newUser.username}</p>
+     <p><strong>Temporary Password:</strong> ${tempPassword}</p>
+     <p><a href="${loginLink}">Login here</a></p>
+     <p>Change your password immediately after first login.</p>`
       );
 
       await AuditLog.create({

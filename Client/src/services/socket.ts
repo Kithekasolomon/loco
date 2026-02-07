@@ -8,7 +8,7 @@ export const initSocket = () => {
 
   socket = io('http:// localhost:5000', {
     auth: {
-      token: localStorage.getItem('token') || '', // send JWT so backend can authenticate
+      token: localStorage.getItem('token') || '', 
     },
     withCredentials: true,
     autoConnect: true,

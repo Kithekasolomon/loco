@@ -203,6 +203,11 @@ const _nav = [
         name: 'Admin Requests',
         to: '/admin/requests',
       },
+      {
+        component: CNavItem,
+        name: 'Technician Dashboard',
+        to: '/technician/dashboard',
+      }
     ],
   },
   {

@@ -1,5 +1,5 @@
 const dns = require('node:dns');
-dns.setDefaultResultOrder('ipv4first'); 
+dns.setDefaultResultOrder('ipv4first');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 require("dotenv").config();
@@ -11,12 +11,14 @@ const http = require("http");
 const { initSocket } = require("./socket/socket");
 
 require("./models/User");
-require("./models/Organization");          // ← must come early
+require("./models/Organization");          
 require("./models/Role");
 require("./models/Approval");
 require("./models/Otp");
-require("./models/Service");               // if you have it
+require("./models/Service");              
 require("./models/ServiceRequest");
+require("./models/ServiceRequest"); 
+
 
 const app = express();
 
@@ -29,6 +31,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+
 
 
 
@@ -58,6 +62,7 @@ app.use("/api/daily-reports", require("./routes/dailyReportRoutes"));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api', require('./routes/serviceRoutes'));
 app.use('/api', require('./routes/serviceRequestAdminRoutes'));
+app.use("/api/service-requests", require("./routes/serviceRequestRoutes"));
 
 
 const server = http.createServer(app);
@@ -70,4 +75,3 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`🔌 Socket.IO ready at http://localhost:${PORT}`);
 });
 
- 

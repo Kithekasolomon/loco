@@ -2,58 +2,99 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Role = require("../models/Role");
+const Organization = require("../models/Organization");
 
 module.exports = async () => {
   try {
-    let superAdminRole = await Role.findOne({ name: "SUPER_ADMIN" });
+    // ───────────────────────────────────────────────
+    // 1. Ensure essential roles exist
+    // ───────────────────────────────────────────────
+    const rolesToSeed = [
+      { name: "SUPER_ADMIN", permissions: ["*"] },
+      { name: "ADMIN", permissions: ["MANAGE_USERS", "VIEW_REQUESTS", "MANAGE_TECHNICIANS"] },
+      { name: "TECHNICIAN", permissions: ["UPDATE_REQUESTS", "VIEW_ASSIGNED_REQUESTS"] },
+      { name: "CLIENT", permissions: ["CREATE_REQUEST", "VIEW_OWN_REQUESTS"] },
+    ];
 
-    if (!superAdminRole) {
-      superAdminRole = await Role.create({
-        name: "SUPER_ADMIN",
-        permissions: ["*"],
-      });
-      console.log("✅ SUPER_ADMIN role created");
+    const roleMap = {};
+
+    for (const r of rolesToSeed) {
+      let role = await Role.findOne({ name: r.name });
+      if (!role) {
+        role = await Role.create(r);
+        console.log(`✅ Role created: ${r.name}`);
+      }
+      roleMap[r.name] = role._id;
     }
 
-    let superAdminUser = await User.findOne({ username: "superadmin" });
+    // ───────────────────────────────────────────────
+    // 2. Create default Platform organization (for super admin)
+    // ───────────────────────────────────────────────
+    let platformOrg = await Organization.findOne({ name: "Platform" });
 
-    const defaultPassword = "admin123";
+    if (!platformOrg) {
+      platformOrg = await Organization.create({
+        name: "Platform",
+        currency: "USD",
+        // You can add more defaults if needed
+      });
+      console.log("✅ Platform organization created");
+    }
+
+    // ───────────────────────────────────────────────
+    // 3. Create / update SUPER_ADMIN user
+    // ───────────────────────────────────────────────
+    const superAdminUsername = "superadmin";
+    let superAdmin = await User.findOne({ username: superAdminUsername });
+
+    const defaultPassword = process.env.SUPERADMIN_DEFAULT_PASSWORD || "ChangeMe123!";
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    if (!superAdminUser) {
-      superAdminUser = await User.create({
-        firstName: "Super",
-        lastName: "Admin",
-        username: "superadmin",
-        email: process.env.EMAIL_USER || "kithekasolomon20@gmail.com",
+    if (!superAdmin) {
+      superAdmin = await User.create({
+        firstName: "System",
+        lastName: "SuperAdmin",
+        username: superAdminUsername,
+        email: process.env.SUPERADMIN_EMAIL || "superadmin@yourdomain.com",
+        phone: "+254700000000", // optional
+        gender: "OTHER",
         password: hashedPassword,
-        role: superAdminRole._id,
+        role: roleMap["SUPER_ADMIN"],
+        organization: platformOrg._id,
         isActive: true,
       });
+
       console.log("✅ Super Admin user created");
-      console.log(`   Username: superadmin`);
-      console.log(`   Password: ${defaultPassword}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`   Username: ${superAdminUsername}`);
+        console.log(`   Password: ${defaultPassword}`);
+        console.log(`   Email:    ${superAdmin.email}`);
+      }
     } else {
       let needsUpdate = false;
 
-      if (!superAdminUser.role || superAdminUser.role.toString() !== superAdminRole._id.toString()) {
-        superAdminUser.role = superAdminRole._id;
+      if (!superAdmin.organization) {
+        superAdmin.organization = platformOrg._id;
         needsUpdate = true;
       }
-
-      if (!superAdminUser.isActive) {
-        superAdminUser.isActive = true;
+      if (superAdmin.role?.toString() !== roleMap["SUPER_ADMIN"].toString()) {
+        superAdmin.role = roleMap["SUPER_ADMIN"];
+        needsUpdate = true;
+      }
+      if (!superAdmin.isActive) {
+        superAdmin.isActive = true;
         needsUpdate = true;
       }
 
       if (needsUpdate) {
-        await superAdminUser.save();
-        console.log("✅ Existing Super Admin updated with correct role & activated");
+        await superAdmin.save();
+        console.log("✅ Existing Super Admin updated");
       }
     }
 
-    console.log("🌟 Super Admin seeding completed successfully");
+    console.log("🌟 Initial roles & super admin seeding completed");
   } catch (error) {
-    console.error("❌ Error seeding Super Admin:", error);
+    console.error("❌ Seeding failed:", error.message);
+    console.error(error.stack);
   }
 };

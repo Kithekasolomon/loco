@@ -31,7 +31,8 @@ export const createRequest = async (payload) => {
 
 export const getRequestById = async (id) => {
     try {
-        const { data } = await api.get(`/api/requests/${id}`);
+        const { data } = await  api.get(`/api/service-requests/${id}`)
+
         return data;
     } catch (err) {
         throw err?.response?.data || { message: 'Request not found' };
@@ -67,13 +68,12 @@ export const uploadImage = async (file) => {
         const { data } = await api.post('/api/upload/service-request-image', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
-        return data.url; // cloudinary url
+        return data.url; 
     } catch (err) {
         throw err?.response?.data || { message: 'Upload failed' };
     }
 };
 
-// Submit technician progress update (with files)
 export const submitProgressUpdate = async (requestId, data) => {
     const formData = new FormData();
     formData.append('message', data.message);
@@ -95,7 +95,6 @@ export const submitProgressUpdate = async (requestId, data) => {
     }
 };
 
-// Get all updates for a request
 export const getRequestUpdates = async (requestId) => {
     try {
         const res = await api.get(`/api/admin/requests/${requestId}/updates`);
@@ -104,4 +103,53 @@ export const getRequestUpdates = async (requestId) => {
         console.error('Failed to load updates:', err);
         return [];
     }
+};
+export const requestAssignTechnician = async (requestId, assignedTo) => {
+    try {
+        const { data } = await api.patch(`/api/requests/${requestId}/assign-self`, { assignedTo });
+        return data;
+    } catch (err) {
+        throw err?.response?.data || { message: 'Failed to request technician assignment' };
+    }
+};
+
+export const requestConfirmCompletion = async (requestId, payload = {}) => {
+    const formData = new FormData();
+    if (payload.note) formData.append('note', payload.note);
+    if (payload.paymentMethod) formData.append('paymentMethod', payload.paymentMethod);
+    if (payload.transactionRef) formData.append('transactionRef', payload.transactionRef);
+    if (payload.proofFile) formData.append('file', payload.proofFile);
+
+    try {
+        const { data } = await api.patch(`/api/requests/${requestId}/confirm-completion`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return data;
+    } catch (err) {
+        throw err?.response?.data || { message: 'Failed to submit completion confirmation' };
+    }
+};
+
+export const getCurrentUser = async () => {
+    try {
+        const { data } = await api.get('/api/auth/me');
+        return data;
+    } catch (err) {
+        return null;
+    }
+};
+// frontend - serviceService.js
+export const getOrganizationUsers = async (roleFilter = null) => {
+    let url = '/api/users/organization';
+    if (roleFilter) url += `?role=${roleFilter}`;
+    const { data } = await api.get(url);
+    return data.map(u => ({
+        value: u._id,
+        label: `${u.firstName || ''} ${u.lastName || ''} (${u.username || u.email || 'no id'})`
+    }));
+};
+// serviceService.js
+export const getTechnicians = async () => {
+    const { data } = await api.get('/api/users/organization?role=TECHNICIAN');
+    return data; // already [{value, label}, ...]
 };

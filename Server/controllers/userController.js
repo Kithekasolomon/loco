@@ -22,6 +22,7 @@ exports.requestCreateUser = async (req, res) => {
       email,
       phone,
       username,
+      organization: req.user.organization,
       role,
       createdBy: req.user.id,
     };
@@ -35,16 +36,38 @@ exports.requestCreateUser = async (req, res) => {
     });
   }
 };
+// controllers/userController.js
 exports.getOrganizationUsers = async (req, res) => {
   try {
-    const users = await User.find({ organization: req.user.organization })
-      .select("firstName lastName username _id")
-      .sort({ firstName: 1 });
+    const { role } = req.query; 
+
+    const filter = {
+      organization: req.user.organization,
+      isActive: true
+    };
+
+    if (role) {
+      const roleDoc = await Role.findOne({ name: role.toUpperCase() });
+      if (roleDoc) {
+        filter.role = roleDoc._id;
+      } else {
+        return res.json([]); 
+      }
+    }
+
+    const users = await User.find(filter)
+      .select("firstName lastName username email phone role _id")
+      .populate("role", "name")                    
+      .sort({ firstName: 1 })
+      .lean();                                     
+
     res.json(users);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch users" });
+    console.error("getOrganizationUsers error:", err);
+    res.status(500).json({ message: "Failed to fetch organization users" });
   }
 };
+
 
 exports.requestEditUser = async (req, res) => {
   try {
@@ -91,5 +114,26 @@ exports.requestRestoreUser = async (req, res) => {
   } catch (err) {
     console.error("requestRestoreUser error:", err);
     res.status(500).json({ msg: "Failed to send restore request" });
+  }
+};
+// controllers/userController.js
+exports.getOrganizationUsers = async (req, res) => {
+  try {
+    const { role } = req.query; 
+
+    const filter = { organization: req.user.organization, isActive: true };
+    if (role) {
+      const roleDoc = await Role.findOne({ name: role.toUpperCase() });
+      if (roleDoc) filter.role = roleDoc._id;
+    }
+
+    const users = await User.find(filter)
+      .select("firstName lastName username email phone role")
+      .populate("role", "name")
+      .sort({ firstName: 1 });
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch users" });
   }
 };

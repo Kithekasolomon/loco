@@ -9,6 +9,7 @@ const ServiceRequestsList = React.lazy(() => import('./views/service/ServiceRequ
 const ServiceRequestCreate = React.lazy(() => import('./views/service/ServiceRequestCreate'));
 const ServiceRequestDetail = React.lazy(() => import('./views/service/ServiceRequestDetail'));
 const AdminRequestsList = React.lazy(() => import('./views/service/AdminRequestsList'));
+const TechnicianDashboard = React.lazy(() => import('./views/technician/TechnicianDashboard'));
 
 const PaymentView = React.lazy(() => import('./views/forms/Payments/PaymentView'))
 const ProfitLoss = React.lazy(() => import('./views/forms/reports/ProfitLoss'))
@@ -145,6 +146,11 @@ const routes = [
     path: '/requests/:id',
     name: 'Service Request Detail',
     element: ServiceRequestDetail,
+  },
+  {
+    path: '/technician/dashboard',
+    name: 'Technician Dashboard',
+    element: TechnicianDashboard,
   },
   
 

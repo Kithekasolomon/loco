@@ -24,14 +24,17 @@ import {
     CSpinner,
     CListGroup,
     CListGroupItem,
+    CFormSelect,
 } from '@coreui/react';
 import { useAuth } from '../../context/AuthContext';
 import {
     getRequestById,
     cancelRequest,
-    completeRequest,
+    requestAssignTechnician,
+    requestConfirmCompletion,
     submitProgressUpdate,
     getRequestUpdates,
+    getOrganizationUsers,  
 } from '../../services/serviceService';
 
 const statusColors = {
@@ -46,68 +49,125 @@ const statusColors = {
 
 const ServiceRequestDetail = () => {
     const { id } = useParams();
-    const { user } = useAuth(); // current logged-in user
+    const { user } = useAuth(); 
 
     const [request, setRequest] = useState(null);
     const [updates, setUpdates] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [technicians, setTechnicians] = useState([]); 
 
-    // Cancel modal
+    const [loading, setLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
+
     const [cancelModal, setCancelModal] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
 
-    // Complete + review modal
-    const [completeModal, setCompleteModal] = useState(false);
-    const [rating, setRating] = useState(5);
-    const [reviewComment, setReviewComment] = useState('');
+    const [assignModal, setAssignModal] = useState(false);
+    const [selectedTech, setSelectedTech] = useState('');
 
-    // Technician progress update modal
+    const [completeModal, setCompleteModal] = useState(false);
+    const [completionNote, setCompletionNote] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('');
+    const [transactionRef, setTransactionRef] = useState('');
+    const [proofFile, setProofFile] = useState(null);
+
     const [progressModal, setProgressModal] = useState(false);
     const [progressMessage, setProgressMessage] = useState('');
     const [progressFiles, setProgressFiles] = useState([]);
     const [markAsReady, setMarkAsReady] = useState(false);
-    const [submittingProgress, setSubmittingProgress] = useState(false);
 
     useEffect(() => {
-        const loadData = async () => {
+        const fetchData = async () => {
             try {
+                setLoading(true);
+                setErrorMsg('');
+
                 const reqData = await getRequestById(id);
                 setRequest(reqData);
 
                 const updateData = await getRequestUpdates(id);
-                setUpdates(updateData);
+                setUpdates(updateData || []);
+
+                if (reqData?.user?._id === user?.id && !reqData?.assignedTo) {
+                    const techList = await getOrganizationUsers();
+                    setTechnicians(techList);
+                }
             } catch (err) {
-                setError(err.message || 'Failed to load request or updates');
+                setErrorMsg(err.message || 'Could not load request details');
             } finally {
                 setLoading(false);
             }
         };
 
-        loadData();
-    }, [id]);
+        fetchData();
+    }, [id, user?.id]);
 
     const isClient = request?.user?._id === user?.id;
     const isTechnician = request?.assignedTo?._id === user?.id;
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user?.roleName);
 
-    const canCancel = ['PENDING', 'CONFIRMED'].includes(request?.status);
-    const canComplete = request?.status === 'READY_FOR_COMPLETION' && isClient;
-    const canUpdateProgress = ['IN_PROGRESS'].includes(request?.status) && isTechnician;
+    const canCancel = isClient && ['PENDING', 'CONFIRMED'].includes(request?.status);
+    const canRequestAssign = isClient && !request?.assignedTo;
+    const canRequestComplete = isClient && request?.status === 'READY_FOR_COMPLETION';
+    const canAddProgress = isTechnician && request?.status === 'IN_PROGRESS';
 
-    const handleFileSelect = (e) => {
-        if (e.target.files) {
-            setProgressFiles(Array.from(e.target.files));
+    // ─── Handlers ─────────────────────────────────────────────────────────────
+
+    const handleCancel = async () => {
+        try {
+            await cancelRequest(id, cancelReason.trim());
+            setRequest(prev => ({ ...prev, status: 'CANCELLED' }));
+            setSuccessMsg('Request cancelled successfully');
+            setCancelModal(false);
+        } catch (err) {
+            setErrorMsg(err.message || 'Failed to cancel request');
+        }
+    };
+
+    const handleRequestAssign = async () => {
+        if (!selectedTech) {
+            setErrorMsg('Please select a technician');
+            return;
+        }
+        try {
+            await requestAssignTechnician(id, selectedTech);
+            setSuccessMsg('Technician assignment request sent. Waiting for approval.');
+            setAssignModal(false);
+            setSelectedTech('');
+            // Optional: refresh request data
+            const fresh = await getRequestById(id);
+            setRequest(fresh);
+        } catch (err) {
+            setErrorMsg(err.message || 'Failed to request assignment');
+        }
+    };
+
+    const handleConfirmCompletion = async () => {
+        try {
+            const payload = {
+                note: completionNote.trim(),
+                paymentMethod: paymentMethod.trim(),
+                transactionRef: transactionRef.trim(),
+                proofFile,
+            };
+            await requestConfirmCompletion(id, payload);
+            setSuccessMsg('Completion & payment confirmation sent for admin review.');
+            setCompleteModal(false);
+            // Reset fields
+            setCompletionNote('');
+            setPaymentMethod('');
+            setTransactionRef('');
+            setProofFile(null);
+        } catch (err) {
+            setErrorMsg(err.message || 'Failed to submit confirmation');
         }
     };
 
     const handleProgressSubmit = async () => {
         if (!progressMessage.trim()) {
-            setError('Please enter a description of the work done');
+            setErrorMsg('Please describe the progress');
             return;
         }
-
-        setSubmittingProgress(true);
-        setError('');
 
         try {
             const payload = {
@@ -118,250 +178,280 @@ const ServiceRequestDetail = () => {
 
             const result = await submitProgressUpdate(id, payload);
 
-            // Refresh updates list
+            // Refresh updates & request
             const freshUpdates = await getRequestUpdates(id);
             setUpdates(freshUpdates);
 
-            // Update request if status changed
             if (result.request) {
                 setRequest(result.request);
             }
 
-            // Reset form
+            setSuccessMsg('Progress update submitted successfully');
             setProgressModal(false);
             setProgressMessage('');
             setProgressFiles([]);
             setMarkAsReady(false);
         } catch (err) {
-            setError(err.message || 'Failed to submit progress update');
-        } finally {
-            setSubmittingProgress(false);
+            setErrorMsg(err.message || 'Failed to submit update');
         }
     };
 
-    const handleCancel = async () => {
-        try {
-            await cancelRequest(id, cancelReason);
-            setRequest({ ...request, status: 'CANCELLED' });
-            setCancelModal(false);
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-
-    const handleComplete = async () => {
-        try {
-            await completeRequest(id, rating, reviewComment);
-            setRequest({
-                ...request,
-                status: 'COMPLETED',
-                rating,
-                reviewComment,
-            });
-            setCompleteModal(false);
-        } catch (err) {
-            setError(err.message);
+    const handleFileChange = (e) => {
+        if (e.target.files) {
+            setProgressFiles(Array.from(e.target.files));
         }
     };
 
     if (loading) return <div className="text-center py-5"><CSpinner color="primary" /></div>;
-    if (error) return <CAlert color="danger">{error}</CAlert>;
+    if (errorMsg) return <CAlert color="danger" dismissible>{errorMsg}</CAlert>;
     if (!request) return <CAlert color="info">Request not found</CAlert>;
 
     return (
         <>
-            <CCardHeader>
-                <h4>Service Request #{request._id?.slice(-8) || 'N/A'}</h4>
-            </CCardHeader>
+            <CCard>
+                <CCardHeader>
+                    <h4>Service Request #{id.slice(-8)}</h4>
+                </CCardHeader>
 
-            <CCardBody>
-                <CRow className="mb-4">
-                    <CCol md={8}>
-                        <h5 className="mb-3">{request.serviceType}</h5>
+                <CCardBody>
+                    {successMsg && <CAlert color="success" dismissible onClose={() => setSuccessMsg('')}>{successMsg}</CAlert>}
 
-                        <div className="mb-2">
-                            <strong>Description:</strong> {request.description || '—'}
-                        </div>
+                    <CRow className="mb-4">
+                        <CCol md={8}>
+                            <h5 className="mb-3">{request.serviceType}</h5>
 
-                        <div className="mb-2">
-                            <strong>Location:</strong> {request.location || '—'}
-                        </div>
-
-                        <div className="mb-2">
-                            <strong>Scheduled:</strong>{' '}
-                            {request.date ? new Date(request.date).toLocaleDateString() : '—'}{' '}
-                            {request.time || ''}
-                        </div>
-
-                        {request.price && (
+                            <div className="mb-2"><strong>Description:</strong> {request.description || '—'}</div>
+                            <div className="mb-2"><strong>Location:</strong> {request.location || '—'}</div>
                             <div className="mb-2">
-                                <strong>Estimated Price:</strong> KES {request.price.toLocaleString()}
+                                <strong>Scheduled:</strong>{' '}
+                                {request.date ? new Date(request.date).toLocaleDateString() : '—'} {request.time || ''}
                             </div>
+                            {request.price && (
+                                <div className="mb-2"><strong>Price:</strong> KES {request.price.toLocaleString()}</div>
+                            )}
+                            <div className="mb-3">
+                                <strong>Status:</strong>{' '}
+                                <CBadge color={statusColors[request.status] || 'secondary'} size="lg">
+                                    {request.status}
+                                </CBadge>
+                            </div>
+                            <div>
+                                <strong>Technician:</strong>{' '}
+                                {request.assignedTo
+                                    ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`
+                                    : 'Not assigned yet'}
+                            </div>
+                        </CCol>
+
+                        <CCol md={4}>
+                            {request.image && (
+                                <CImage fluid src={request.image} alt="Request photo" className="rounded shadow" />
+                            )}
+                        </CCol>
+                    </CRow>
+
+                    {/* Action Buttons */}
+                    <div className="d-flex flex-wrap gap-3 mb-5">
+                        {canCancel && (
+                            <CButton color="danger" onClick={() => setCancelModal(true)}>
+                                Cancel Request
+                            </CButton>
                         )}
 
-                        <div className="mb-3">
-                            <strong>Current Status:</strong>{' '}
-                            <CBadge color={statusColors[request.status] || 'secondary'} size="lg">
-                                {request.status}
-                            </CBadge>
-                        </div>
-
-                        <div>
-                            <strong>Assigned Technician:</strong>{' '}
-                            {request.assignedTo
-                                ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`
-                                : 'Not assigned yet'}
-                        </div>
-                    </CCol>
-
-                    <CCol md={4}>
-                        {request.image && (
-                            <CImage
-                                fluid
-                                src={request.image}
-                                alt="Request photo"
-                                className="rounded shadow-sm"
-                            />
+                        {canRequestAssign && (
+                            <CButton color="primary" onClick={() => setAssignModal(true)}>
+                                Request Technician
+                            </CButton>
                         )}
-                    </CCol>
-                </CRow>
 
-                {/* Action buttons */}
-                <div className="d-flex flex-wrap gap-2 mb-4">
-                    {canCancel && (
-                        <CButton color="danger" onClick={() => setCancelModal(true)}>
-                            Cancel Request
-                        </CButton>
-                    )}
+                        {canRequestComplete && (
+                            <CButton color="success" onClick={() => setCompleteModal(true)}>
+                                Confirm Job Done & Payment
+                            </CButton>
+                        )}
 
-                    {canComplete && (
-                        <CButton color="success" onClick={() => setCompleteModal(true)}>
-                            Confirm Job Done + Leave Review
-                        </CButton>
-                    )}
+                        {canAddProgress && (
+                            <CButton color="primary" onClick={() => setProgressModal(true)}>
+                                Add Progress Update
+                            </CButton>
+                        )}
 
-                    {canUpdateProgress && (
-                        <CButton color="primary" onClick={() => setProgressModal(true)}>
-                            Add Progress Update
-                        </CButton>
-                    )}
-                </div>
+                        {isAdmin && request.status === 'READY_FOR_COMPLETION' && (
+                            <CButton color="dark" as="a" href={`/admin/requests/${id}`}>
+                                Review as Admin
+                            </CButton>
+                        )}
+                    </div>
 
-                {/* Progress History */}
-                {updates.length > 0 && (
-                    <div className="mt-4 mb-5">
-                        <h5>Work Progress History</h5>
-                        <CListGroup flush className="border rounded">
-                            {updates.map((update) => (
-                                <CListGroupItem key={update._id} className="p-3">
-                                    <div className="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <strong>
-                                                {update.user?.firstName} {update.user?.lastName}
-                                            </strong>
-                                            <small className="text-muted ms-2">
-                                                {new Date(update.createdAt).toLocaleString()}
-                                            </small>
-                                        </div>
-                                        {update.statusAtUpdate && (
-                                            <CBadge color="info">{update.statusAtUpdate}</CBadge>
-                                        )}
+                    {/* Progress Updates */}
+                    {updates.length > 0 && (
+                        <div className="mt-4">
+                            <h5>Progress & Updates</h5>
+                            {updates.map((upd) => (
+                                <div key={upd._id} className="border rounded p-3 mb-3 bg-light">
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <strong>
+                                            {upd.user?.firstName} {upd.user?.lastName}
+                                        </strong>
+                                        <small className="text-muted">
+                                            {new Date(upd.createdAt).toLocaleString()}
+                                        </small>
                                     </div>
+                                    <p className="mb-3">{upd.message}</p>
 
-                                    <p className="mb-2">{update.message}</p>
-
-                                    {update.images?.length > 0 && (
-                                        <div className="d-flex flex-wrap gap-2 mt-2">
-                                            {update.images.map((img, idx) => (
-                                                <CImage
-                                                    key={idx}
-                                                    src={img}
-                                                    alt={`Progress photo ${idx + 1}`}
-                                                    width={180}
-                                                    className="rounded border"
-                                                    style={{ objectFit: 'cover' }}
-                                                />
+                                    {upd.images?.length > 0 && (
+                                        <CRow className="g-2">
+                                            {upd.images.map((imgUrl, idx) => (
+                                                <CCol xs={6} sm={4} md={3} key={idx}>
+                                                    <CImage
+                                                        fluid
+                                                        src={imgUrl}
+                                                        alt={`Progress ${idx + 1}`}
+                                                        className="rounded border shadow-sm"
+                                                    />
+                                                </CCol>
                                             ))}
-                                        </div>
+                                        </CRow>
                                     )}
-                                </CListGroupItem>
+                                </div>
                             ))}
-                        </CListGroup>
-                    </div>
-                )}
+                        </div>
+                    )}
+                </CCardBody>
+            </CCard>
 
-                {/* Client review (visible after completion) */}
-                {request.status === 'COMPLETED' && request.rating && (
-                    <div className="mt-4 p-3 bg-light rounded border">
-                        <h5>Client Review</h5>
-                        <div className="mb-2">
-                            <strong>Rating:</strong> {request.rating} / 5 ★
-                        </div>
-                        <div>
-                            <strong>Comment:</strong>{' '}
-                            {request.reviewComment || <em>No comment provided</em>}
-                        </div>
-                    </div>
-                )}
-            </CCardBody>
+            {/* ─── Modals ─────────────────────────────────────────────────────────────── */}
+
+            {/* Assign Technician Modal */}
+            <CModal visible={assignModal} onClose={() => setAssignModal(false)}>
+                <CModalHeader closeButton>
+                    <CModalTitle>Request a Technician</CModalTitle>
+                </CModalHeader>
+                <CModalBody>
+                    <CFormSelect
+                        value={selectedTech}
+                        onChange={(e) => setSelectedTech(e.target.value)}
+                    >
+                        <option value="">Select technician...</option>
+                        {technicians.length === 0 ? (
+                            <option disabled>No technicians available</option>
+                        ) : (
+                            technicians.map(t => (
+                                <option key={t.value} value={t.value}>
+                                    {t.label}
+                                </option>
+                            ))
+                        )}
+                    </CFormSelect>
+                </CModalBody>
+                <CModalFooter>
+                    <CButton color="secondary" onClick={() => setAssignModal(false)}>
+                        Close
+                    </CButton>
+                    <CButton
+                        color="primary"
+                        disabled={!selectedTech}
+                        onClick={handleRequestAssign}
+                    >
+                        Send Request
+                    </CButton>
+                </CModalFooter>
+            </CModal>
+
+            {/* Completion Confirmation Modal */}
+            <CModal visible={completeModal} onClose={() => setCompleteModal(false)} size="lg">
+                <CModalHeader closeButton>
+                    <CModalTitle>Confirm Job Completed & Payment</CModalTitle>
+                </CModalHeader>
+                <CModalBody>
+                    <CForm>
+                        <CFormLabel>Final Notes (optional)</CFormLabel>
+                        <CFormTextarea
+                            rows={3}
+                            value={completionNote}
+                            onChange={e => setCompletionNote(e.target.value)}
+                            placeholder="Any last comments..."
+                        />
+
+                        <CFormLabel className="mt-3">Payment Method</CFormLabel>
+                        <CFormInput
+                            placeholder="M-Pesa / Cash / Card / Bank..."
+                            value={paymentMethod}
+                            onChange={e => setPaymentMethod(e.target.value)}
+                        />
+
+                        <CFormLabel className="mt-3">Transaction Ref / Code (if any)</CFormLabel>
+                        <CFormInput
+                            value={transactionRef}
+                            onChange={e => setTransactionRef(e.target.value)}
+                        />
+
+                        <CFormLabel className="mt-3">Payment Proof (screenshot / receipt)</CFormLabel>
+                        <CFormInput
+                            type="file"
+                            accept="image/*"
+                            onChange={e => setProofFile(e.target.files?.[0] || null)}
+                        />
+                    </CForm>
+                </CModalBody>
+                <CModalFooter>
+                    <CButton color="secondary" onClick={() => setCompleteModal(false)}>
+                        Cancel
+                    </CButton>
+                    <CButton color="success" onClick={handleConfirmCompletion}>
+                        Submit for Review
+                    </CButton>
+                </CModalFooter>
+            </CModal>
 
             {/* Progress Update Modal */}
             <CModal visible={progressModal} onClose={() => setProgressModal(false)} size="lg">
                 <CModalHeader closeButton>
-                    <CModalTitle>Update Progress</CModalTitle>
+                    <CModalTitle>Add Progress Update</CModalTitle>
                 </CModalHeader>
                 <CModalBody>
-                    {error && <CAlert color="danger" dismissible>{error}</CAlert>}
-
                     <CForm>
-                        <CFormLabel>Work Done / Notes</CFormLabel>
+                        <CFormLabel>Work Done / Notes *</CFormLabel>
                         <CFormTextarea
                             rows={5}
-                            placeholder="Describe what has been completed so far..."
                             value={progressMessage}
-                            onChange={(e) => setProgressMessage(e.target.value)}
+                            onChange={e => setProgressMessage(e.target.value)}
+                            placeholder="Describe what has been completed..."
                             required
                         />
 
-                        <CFormLabel className="mt-4">Photos / Evidence (optional, multiple allowed)</CFormLabel>
+                        <CFormLabel className="mt-4">Photos (optional – multiple allowed)</CFormLabel>
                         <CFormInput
                             type="file"
                             multiple
                             accept="image/*"
-                            onChange={handleFileSelect}
+                            onChange={handleFileChange}
                         />
                         {progressFiles.length > 0 && (
-                            <small className="text-muted mt-1 d-block">
+                            <small className="text-muted d-block mt-1">
                                 {progressFiles.length} file(s) selected
                             </small>
                         )}
 
                         <CFormCheck
                             className="mt-4"
-                            id="markReadyCheckbox"
-                            label="This update completes the job – mark as ready for client review"
+                            id="markReady"
+                            label="This is the final update – mark job as ready for client review"
                             checked={markAsReady}
-                            onChange={(e) => setMarkAsReady(e.target.checked)}
+                            onChange={e => setMarkAsReady(e.target.checked)}
                         />
                     </CForm>
                 </CModalBody>
                 <CModalFooter>
                     <CButton color="secondary" onClick={() => setProgressModal(false)}>
-                        Cancel
+                        Close
                     </CButton>
                     <CButton
                         color="primary"
-                        disabled={submittingProgress || !progressMessage.trim()}
+                        disabled={!progressMessage.trim()}
                         onClick={handleProgressSubmit}
                     >
-                        {submittingProgress ? (
-                            <>
-                                <CSpinner size="sm" className="me-2" />
-                                Submitting...
-                            </>
-                        ) : (
-                            'Submit Update'
-                        )}
+                        Submit Update
                     </CButton>
                 </CModalFooter>
             </CModal>
@@ -369,13 +459,14 @@ const ServiceRequestDetail = () => {
             {/* Cancel Modal */}
             <CModal visible={cancelModal} onClose={() => setCancelModal(false)}>
                 <CModalHeader closeButton>
-                    <CModalTitle>Cancel Service Request</CModalTitle>
+                    <CModalTitle>Cancel Request</CModalTitle>
                 </CModalHeader>
                 <CModalBody>
-                    <CFormLabel>Reason for cancellation (optional)</CFormLabel>
+                    <CFormLabel>Reason (optional)</CFormLabel>
                     <CFormTextarea
                         value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
+                        onChange={e => setCancelReason(e.target.value)}
+                        placeholder="Why are you cancelling?"
                     />
                 </CModalBody>
                 <CModalFooter>
@@ -383,42 +474,7 @@ const ServiceRequestDetail = () => {
                         Close
                     </CButton>
                     <CButton color="danger" onClick={handleCancel}>
-                        Confirm Cancellation
-                    </CButton>
-                </CModalFooter>
-            </CModal>
-
-            {/* Complete + Review Modal */}
-            <CModal visible={completeModal} onClose={() => setCompleteModal(false)}>
-                <CModalHeader closeButton>
-                    <CModalTitle>Confirm Job Completed</CModalTitle>
-                </CModalHeader>
-                <CModalBody>
-                    <CForm>
-                        <CFormLabel>Rate the service (1–5)</CFormLabel>
-                        <CFormInput
-                            type="number"
-                            min="1"
-                            max="5"
-                            value={rating}
-                            onChange={(e) => setRating(Number(e.target.value))}
-                        />
-
-                        <CFormLabel className="mt-3">Your review / comments</CFormLabel>
-                        <CFormTextarea
-                            rows={4}
-                            value={reviewComment}
-                            onChange={(e) => setReviewComment(e.target.value)}
-                            placeholder="How was the service? Any feedback?"
-                        />
-                    </CForm>
-                </CModalBody>
-                <CModalFooter>
-                    <CButton color="secondary" onClick={() => setCompleteModal(false)}>
-                        Close
-                    </CButton>
-                    <CButton color="success" onClick={handleComplete}>
-                        Submit Review & Confirm
+                        Confirm Cancel
                     </CButton>
                 </CModalFooter>
             </CModal>
