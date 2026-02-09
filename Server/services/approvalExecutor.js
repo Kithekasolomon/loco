@@ -33,6 +33,36 @@ module.exports.execute = async (approval) => {
 
   switch (actionType) {
 
+    case "REQUEST_COMPLETION_APPROVAL": {
+      const { requestId } = payload;
+
+      const request = await ServiceRequest.findById(requestId);
+      if (!request) throw new Error("Request not found");
+
+      if (request.status !== "IN_PROGRESS") {
+        throw new Error("Can only request completion approval for IN_PROGRESS jobs");
+      }
+
+      // Create approval request
+      const approval = await Approval.create({
+        actionType: "CONFIRM_COMPLETION",
+        payload: { requestId },
+        requestedBy: approval.requestedBy, // technician
+        status: "PENDING",
+      });
+
+      request.status = "AWAITING_COMPLETION_APPROVAL";
+      await request.save();
+
+      // Notify admin/superadmin
+      notification.notifySuperAdmins("completion:approval-request", {
+        requestId,
+        technician: req.user._id,
+      });
+
+      return approval;
+    }
+
 
     case "ASSIGN_TECHNICIAN": {
       const { requestId, assignedTo } = payload;
@@ -761,4 +791,5 @@ module.exports.execute = async (approval) => {
     default:
       throw new Error(`Unknown approval action: ${actionType}`);
   }
+  
 };

@@ -21,6 +21,10 @@ const statusColors = {
 };
 
 const TechnicianDashboard = () => {
+
+  const [previousAttachments, setPreviousAttachments] = useState([]);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [showCarousel, setShowCarousel] = useState(false);
   const [requests, setRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +100,7 @@ const TechnicianDashboard = () => {
       isFinalUpdate: false,
     });
     setUploadedFiles([]);
+    setPreviousAttachments(req.attachments || []); // ← load from DB
     setUpdateError('');
     setUpdateSuccess('');
   };
